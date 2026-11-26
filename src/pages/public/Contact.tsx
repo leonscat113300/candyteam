@@ -39,23 +39,32 @@ export const Contact: React.FC = () => {
 
     setSending(true);
     try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim(),
-          subject: subject.trim() || 'General Inquiry',
-          message: message.trim(),
-        }),
-      });
+      let deliveredToServer = false;
+      try {
+        const response = await fetch('/api/contact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name.trim(),
+            email: email.trim(),
+            subject: subject.trim() || 'General Inquiry',
+            message: message.trim(),
+          }),
+        });
 
-      const payload = (await response.json().catch(() => ({}))) as {
-        error?: string;
-      };
-      if (!response.ok) {
-        setError(payload.error || 'Unable to send your message right now.');
-        return;
+        const contentType = response.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json');
+        if (response.ok && isJson) {
+          deliveredToServer = true;
+        } else if (isJson && response.status >= 400 && response.status < 500 && response.status !== 404 && response.status !== 405) {
+          const payload = (await response.json().catch(() => ({}))) as {
+            error?: string;
+          };
+          setError(payload.error || 'Unable to send your message right now.');
+          return;
+        }
+      } catch {
+        // Fall through to local save when static hosting has no /api/contact backend
       }
 
       await addContactSubmission({
@@ -65,13 +74,17 @@ export const Contact: React.FC = () => {
         message: message.trim(),
       });
 
+      if (!deliveredToServer && contact.email) {
+        // Static hosting fallback still stores the inquiry locally
+      }
+
       setName('');
       setEmail('');
       setSubject('');
       setMessage('');
       setSubmitted(true);
     } catch {
-      setError('Network error while sending message. Please try again.');
+      setError('Unable to save your message. Please try emailing us directly.');
     } finally {
       setSending(false);
     }

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import {
-  BrowserRouter,
+  HashRouter,
   Navigate,
   Route,
   Routes,
@@ -41,7 +41,7 @@ const DynamicGameRoute: React.FC = () => {
 
 export const AppRouter: React.FC = () => {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <ScrollToTop />
       <Routes>
         {/* Public Website Routes (6 approved screens + dynamic game slug support) */}
@@ -71,6 +71,6 @@ export const AppRouter: React.FC = () => {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 };

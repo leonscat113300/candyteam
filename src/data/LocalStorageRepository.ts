@@ -86,14 +86,30 @@ export class LocalStorageRepository implements ContentRepository {
         return defaults;
       }
 
+function normalizeAssetUrl(url?: string): string {
+  if (!url) return '';
+  if (url.startsWith('/assets/') || url.startsWith('/src/assets/')) {
+    return `.${url}`;
+  }
+  return url;
+}
+
       const games = Array.isArray(parsed.games)
         ? parsed.games.map((g) => {
             const isLegacyIcon = !g.icon || g.icon.startsWith('/src/assets/images/');
-            if (!isLegacyIcon) return g;
             const fallbackGame = defaults.games.find(
               (d) => d.id === g.id || d.slug === g.slug
             );
-            return fallbackGame?.icon ? { ...g, icon: fallbackGame.icon } : g;
+            const icon = isLegacyIcon
+              ? fallbackGame?.icon || g.icon
+              : normalizeAssetUrl(g.icon);
+            return {
+              ...g,
+              icon,
+              featuredImage: g.featuredImage
+                ? normalizeAssetUrl(g.featuredImage)
+                : g.featuredImage,
+            };
           })
         : defaults.games;
 
@@ -106,33 +122,71 @@ export class LocalStorageRepository implements ContentRepository {
           ? {
               ...defaults.studio,
               ...parsed.studio,
-              logo: isLegacyLogo ? defaults.studio.logo : parsedLogo,
+              logo: isLegacyLogo
+                ? defaults.studio.logo
+                : normalizeAssetUrl(parsedLogo),
             }
           : defaults.studio;
+
+      const normalizeSections = (
+        sections: Record<string, any> | undefined
+      ): Record<string, any> => {
+        if (!sections || typeof sections !== 'object') return {};
+        const next: Record<string, any> = {};
+        for (const [key, sec] of Object.entries(sections)) {
+          if (!sec || typeof sec !== 'object') {
+            next[key] = sec;
+            continue;
+          }
+          next[key] = {
+            ...sec,
+            image: sec.image ? normalizeAssetUrl(sec.image) : sec.image,
+            items: Array.isArray(sec.items)
+              ? sec.items.map((item: any) => ({
+                  ...item,
+                  image: item?.image ? normalizeAssetUrl(item.image) : item?.image,
+                }))
+              : sec.items,
+          };
+        }
+        return next;
+      };
+
+      const rawPages =
+        parsed.pages && typeof parsed.pages === 'object'
+          ? {
+              ...defaults.pages,
+              ...parsed.pages,
+              about: {
+                ...defaults.pages.about,
+                ...(parsed.pages.about || {}),
+                sections: {
+                  ...defaults.pages.about.sections,
+                  ...(parsed.pages.about?.sections || {}),
+                  vision:
+                    parsed.pages.about?.sections?.vision ||
+                    defaults.pages.about.sections.vision,
+                },
+              },
+            }
+          : defaults.pages;
+
+      const normalizedPages = Object.fromEntries(
+        Object.entries(rawPages).map(([slug, page]) => [
+          slug,
+          {
+            ...page,
+            sections: normalizeSections(page.sections),
+          },
+        ])
+      ) as CandyGameDataStore['pages'];
 
       return {
         games,
         categories: Array.isArray(parsed.categories)
           ? parsed.categories
           : defaults.categories,
-        pages:
-          parsed.pages && typeof parsed.pages === 'object'
-            ? {
-                ...defaults.pages,
-                ...parsed.pages,
-                about: {
-                  ...defaults.pages.about,
-                  ...(parsed.pages.about || {}),
-                  sections: {
-                    ...defaults.pages.about.sections,
-                    ...(parsed.pages.about?.sections || {}),
-                    vision:
-                      parsed.pages.about?.sections?.vision ||
-                      defaults.pages.about.sections.vision,
-                  },
-                },
-              }
-            : defaults.pages,
+        pages: normalizedPages,
         studio,
         contact:
           parsed.contact && typeof parsed.contact === 'object'

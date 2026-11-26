@@ -6,12 +6,11 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    base: './',
     plugins: [
       react(),
       tailwindcss(),
-      // Copies src/assets into dist/ so root-relative URLs like
-      // "/src/assets/images/..." (e.g. generate_image output) still resolve
-      // in production builds. Do not remove.
+      // Copies src/assets into dist/ and prepares GitHub Pages static fallbacks.
       {
         name: 'copy-unbundled-src-assets',
         apply: 'build',
@@ -24,6 +23,14 @@ export default defineConfig(() => {
           const distAssets = path.resolve(distDir, 'src/assets');
           if (fs.existsSync(distDir) && fs.existsSync(srcAssets)) {
             fs.cpSync(srcAssets, distAssets, {recursive: true, force: true});
+          }
+          if (fs.existsSync(distDir)) {
+            fs.writeFileSync(path.resolve(distDir, '.nojekyll'), '', 'utf8');
+            const indexHtml = path.resolve(distDir, 'index.html');
+            const fallbackHtml = path.resolve(distDir, '404.html');
+            if (fs.existsSync(indexHtml)) {
+              fs.copyFileSync(indexHtml, fallbackHtml);
+            }
           }
         },
       },

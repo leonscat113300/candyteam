@@ -32,6 +32,7 @@ export const AdminLayout: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [backendAvailable, setBackendAvailable] = useState(true);
   const [headerMeta, setHeaderMeta] = useState<{
     title: string;
     subtitle?: string;
@@ -48,6 +49,12 @@ export const AdminLayout: React.FC = () => {
     })
       .then(async (res) => {
         if (!active) return;
+        const contentType = res.headers.get('content-type') || '';
+        if (!contentType.includes('application/json')) {
+          setBackendAvailable(false);
+          return;
+        }
+        setBackendAvailable(true);
         if (res.ok) {
           const data = (await res.json().catch(() => ({}))) as {
             authenticated?: boolean;
@@ -98,6 +105,14 @@ export const AdminLayout: React.FC = () => {
           useCookie: true,
         }),
       });
+      const contentType = response.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        setBackendAvailable(false);
+        setAuthError(
+          'Admin authentication requires running the Node.js server (static hosting like GitHub Pages serves public pages only).'
+        );
+        return;
+      }
       const payload = (await response.json().catch(() => ({}))) as {
         token?: string;
         username?: string;
@@ -166,6 +181,12 @@ export const AdminLayout: React.FC = () => {
               Enter your studio administrator username and password to access CandyGame management tools.
             </p>
           </div>
+
+          {!backendAvailable ? (
+            <div className="rounded-2xl bg-[#151123] border border-[#BDA7FF]/25 p-3.5 text-xs text-[#cbc3d6] leading-relaxed">
+              Static hosting mode detected (such as GitHub Pages). Public website pages work normally, while protected Admin login and server inbox APIs require running the Node.js server.
+            </div>
+          ) : null}
 
           <form onSubmit={handleSignIn} className="space-y-4">
             <FormInput
