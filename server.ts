@@ -24,7 +24,7 @@ interface ServerStoreData {
 }
 
 const PORT = 3000;
-const STUDIO_MAILBOX = 'candyteam@info.com';
+const STUDIO_MAILBOX = 'support@candygame.bond';
 const GOOGLE_CERTS_URL =
   'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
 
@@ -327,7 +327,7 @@ async function startServer(): Promise<void> {
     res.json({ ok: true });
   });
 
-  // Public contact form endpoint delivering straight to candyteam@info.com server inbox
+  // Public contact form endpoint delivering straight to support@candygame.bond server inbox
   app.post('/api/contact', (req: Request, res: Response) => {
     const body = req.body as Record<string, unknown> | undefined;
     const name =
@@ -372,7 +372,7 @@ async function startServer(): Promise<void> {
     res.status(201).json({ ok: true, message: entry });
   });
 
-  // Inbound email webhook for forwarding external emails sent to candyteam@info.com
+  // Inbound email webhook for forwarding external emails sent to support@candygame.bond
   app.post('/api/inbound-email', async (req: Request, res: Response) => {
     const configuredSecret = process.env.INBOUND_EMAIL_SECRET?.trim();
     const providedSecret =

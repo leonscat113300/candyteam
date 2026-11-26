@@ -57,7 +57,7 @@ export const StudioContact: React.FC = () => {
   const [studioDraft, setStudioDraft] = useState<StudioInfo | null>(null);
   const [contactDraft, setContactDraft] = useState<ContactInfo | null>(null);
   const [inboxMessages, setInboxMessages] = useState<ContactSubmission[]>([]);
-  const [mailboxAddress, setMailboxAddress] = useState('candyteam@info.com');
+  const [mailboxAddress, setMailboxAddress] = useState('support@candygame.bond');
   const [webhookConfigured, setWebhookConfigured] = useState(false);
   const [loadingInbox, setLoadingInbox] = useState(false);
   const [testFrom, setTestFrom] = useState('');
@@ -802,7 +802,7 @@ export const StudioContact: React.FC = () => {
                     About Studio Contact Email & Webhook ({webhookConfigured ? 'Secret Configured' : 'Admin/Secret Protected'})
                   </p>
                   <p>
-                    Messages sent via the website Contact page always arrive directly below. Because <span className="text-white">{mailboxAddress}</span> uses the external <code className="px-1 py-0.5 rounded bg-[#1F1A35] text-[#cebdff]">info.com</code> domain, external emails sent to <code className="px-1 py-0.5 rounded bg-[#1F1A35] text-[#cebdff]">{mailboxAddress}</code> cannot reach this server unless you own that domain. To receive external emails directly, connect your real Gmail inbox above (and optionally update your public Contact Email in the &ldquo;Contact &amp; Social&rdquo; tab to match it), or forward mail from a domain you own to{' '}
+                    Messages sent via the website Contact page always arrive directly below. To receive external emails sent to <code className="px-1 py-0.5 rounded bg-[#1F1A35] text-[#cebdff]">{mailboxAddress}</code> directly in this inbox, connect your Gmail inbox above or forward incoming mail from your <code className="px-1 py-0.5 rounded bg-[#1F1A35] text-[#cebdff]">candygame.bond</code> mail routing service to{' '}
                     <code className="px-1.5 py-0.5 rounded bg-[#1F1A35] text-[#cebdff]">
                       {typeof window !== 'undefined' ? `${window.location.origin}/api/inbound-email` : '/api/inbound-email'}
                     </code>{' '}

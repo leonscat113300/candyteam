@@ -221,13 +221,13 @@ export const INITIAL_PAGES: Record<PageSlug, PageContent> = {
       id: 'contact-hero',
       heading: 'Connect with CandyGame',
       subheading: 'Studio Inquiries & Player Support',
-      body: 'Have feedback about Brain Challenge or Color World, or want to reach the CandyGame team? Send us a message below or email us directly at candyteam@info.com.',
+      body: 'Have feedback about Brain Challenge or Color World, or want to reach the CandyGame team? Send us a message below or email us directly at support@candygame.bond.',
     },
     sections: {
       formIntro: {
         id: 'contact-form-intro',
         heading: 'Send a Message',
-        body: 'Send your inquiry directly to CandyGame (candyteam@info.com). Messages are also logged in the Admin Panel inbox.',
+        body: 'Send your inquiry directly to CandyGame (support@candygame.bond). Messages are also logged in the Admin Panel inbox.',
       },
       directDetails: {
         id: 'contact-direct-details',

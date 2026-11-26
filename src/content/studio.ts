@@ -18,8 +18,8 @@ export const INITIAL_STUDIO_INFO: StudioInfo = {
 };
 
 export const INITIAL_CONTACT_INFO: ContactInfo = {
-  email: 'candyteam@info.com',
-  supportEmail: 'candyteam@info.com',
+  email: 'support@candygame.bond',
+  supportEmail: 'support@candygame.bond',
   phone: '',
   address: '',
   businessHours: '',

@@ -133,7 +133,7 @@ export const Contact: React.FC = () => {
                 </div>
                 <p className="text-sm text-[#e7defa]">
                   Thank you for contacting CandyGame. Your message has been sent to
-                  our studio inbox ({contact.email || 'candyteam@info.com'}).
+                  our studio inbox ({contact.email || 'support@candygame.bond'}).
                 </p>
                 <Button variant="secondary" size="sm" onClick={() => setSubmitted(false)}>
                   Send Another Message

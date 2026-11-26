@@ -181,6 +181,50 @@ export class LocalStorageRepository implements ContentRepository {
         ])
       ) as CandyGameDataStore['pages'];
 
+      const migrateLegacyEmail = (val?: string) =>
+        typeof val === 'string'
+          ? val.replace(/candyteam@info\.com/gi, 'support@candygame.bond')
+          : val;
+
+      const normalizedContact =
+        parsed.contact && typeof parsed.contact === 'object'
+          ? {
+              ...defaults.contact,
+              ...parsed.contact,
+              email:
+                !parsed.contact.email || parsed.contact.email === 'candyteam@info.com'
+                  ? defaults.contact.email
+                  : parsed.contact.email,
+              supportEmail:
+                !parsed.contact.supportEmail ||
+                parsed.contact.supportEmail === 'candyteam@info.com'
+                  ? defaults.contact.supportEmail
+                  : parsed.contact.supportEmail,
+            }
+          : defaults.contact;
+
+      if (normalizedPages.contact) {
+        normalizedPages.contact = {
+          ...normalizedPages.contact,
+          hero: {
+            ...normalizedPages.contact.hero,
+            body: migrateLegacyEmail(normalizedPages.contact.hero.body) || '',
+          },
+          sections: {
+            ...normalizedPages.contact.sections,
+            formIntro: normalizedPages.contact.sections.formIntro
+              ? {
+                  ...normalizedPages.contact.sections.formIntro,
+                  body:
+                    migrateLegacyEmail(
+                      normalizedPages.contact.sections.formIntro.body
+                    ) || '',
+                }
+              : normalizedPages.contact.sections.formIntro,
+          },
+        };
+      }
+
       return {
         games,
         categories: Array.isArray(parsed.categories)
@@ -188,10 +232,7 @@ export class LocalStorageRepository implements ContentRepository {
           : defaults.categories,
         pages: normalizedPages,
         studio,
-        contact:
-          parsed.contact && typeof parsed.contact === 'object'
-            ? { ...defaults.contact, ...parsed.contact }
-            : defaults.contact,
+        contact: normalizedContact,
         navigation:
           parsed.navigation && typeof parsed.navigation === 'object'
             ? { ...defaults.navigation, ...parsed.navigation }

@@ -240,7 +240,7 @@
           id: 'msg-' + Date.now(),
           name,
           email,
-          to: 'candyteam@info.com',
+          to: 'support@candygame.bond',
           subject,
           message,
           source: 'contact-form',
@@ -252,7 +252,7 @@
 
       form.reset();
       if (statusEl) {
-        statusEl.textContent = 'Message sent to CandyGame (candyteam@info.com)! Thank you for contacting us.';
+        statusEl.textContent = 'Message sent to CandyGame (support@candygame.bond)! Thank you for contacting us.';
         statusEl.style.color = '#6ee7b7';
       }
       showToast('Message submitted successfully.');
