@@ -284,7 +284,13 @@ async function startServer(): Promise<void> {
   const app = express();
   app.set('trust proxy', 1);
 
-  const defaultSiteOrigins = ['https://leonscat113300.github.io'];
+  const defaultSiteOrigins = [
+    'http://candygame.bond',
+    'https://candygame.bond',
+    'http://www.candygame.bond',
+    'https://www.candygame.bond',
+    'https://leonscat113300.github.io',
+  ];
   const configuredOrigins = (process.env.ALLOWED_ORIGIN || '')
     .split(',')
     .map((origin) => origin.trim())

@@ -26,6 +26,7 @@ export default defineConfig(() => {
           }
           if (fs.existsSync(distDir)) {
             fs.writeFileSync(path.resolve(distDir, '.nojekyll'), '', 'utf8');
+            fs.writeFileSync(path.resolve(distDir, 'CNAME'), 'candygame.bond\n', 'utf8');
             const fallbackHtml = path.resolve(distDir, '404.html');
             fs.writeFileSync(
               fallbackHtml,

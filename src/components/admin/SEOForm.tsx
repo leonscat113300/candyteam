@@ -54,7 +54,7 @@ export const SEOForm: React.FC<SEOFormProps> = ({
           {value.title || 'Untitled Page'}
         </p>
         <p className="text-xs text-emerald-300/80 truncate">
-          https://leonscat113300.github.io/candyteam{value.canonicalUrl || '/'}
+          https://candygame.bond{value.canonicalUrl || '/'}
         </p>
         <p className="text-xs text-[#cbc3d6] line-clamp-2">
           {value.description || 'No meta description set yet.'}
