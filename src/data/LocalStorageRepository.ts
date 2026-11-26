@@ -23,6 +23,14 @@ import { ContentRepository } from './ContentRepository';
 const LEGACY_STORAGE_KEY = 'candygame_cms_store_v1';
 const STORAGE_KEY = 'candygame_cms_store_v2';
 
+function normalizeAssetUrl(url?: string): string {
+  if (!url) return '';
+  if (url.startsWith('/assets/') || url.startsWith('/src/assets/')) {
+    return `.${url}`;
+  }
+  return url;
+}
+
 function cloneDefaults(): CandyGameDataStore {
   return structuredClone({
     games: INITIAL_GAMES,
@@ -85,14 +93,6 @@ export class LocalStorageRepository implements ContentRepository {
         this.writeStore(defaults);
         return defaults;
       }
-
-function normalizeAssetUrl(url?: string): string {
-  if (!url) return '';
-  if (url.startsWith('/assets/') || url.startsWith('/src/assets/')) {
-    return `.${url}`;
-  }
-  return url;
-}
 
       const games = Array.isArray(parsed.games)
         ? parsed.games.map((g) => {
