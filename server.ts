@@ -6,11 +6,6 @@ import fs from 'fs';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 
-interface AdminAuthRecord {
-  username: string;
-  passwordHash: string;
-}
-
 interface InboxMessage {
   id: string;
   name: string;
@@ -25,48 +20,33 @@ interface InboxMessage {
 }
 
 interface ServerStoreData {
-  adminAuth: AdminAuthRecord;
   messages: InboxMessage[];
 }
 
 const PORT = 3000;
 const STUDIO_MAILBOX = 'candyteam@info.com';
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
-const ADMIN_COOKIE_NAME = 'cg_admin_session';
+const GOOGLE_CERTS_URL =
+  'https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com';
 
-const SESSION_SECRET =
-  process.env.SESSION_SECRET && process.env.SESSION_SECRET.length >= 16
-    ? process.env.SESSION_SECRET
-    : crypto.randomBytes(32).toString('hex');
-
-// Salted scrypt hash for initial admin credentials (stored as salt:hash)
-const DEFAULT_ADMIN_AUTH: AdminAuthRecord = {
-  username: 'leonscat',
-  passwordHash:
-    'ed557d08c6e7025c08d31e73401efc6d:fa335309e2a2186625f340e7ac898f21c109734fd50805069b692fef85744873062c470ab7e81344acf3947bdc6c2bb293cb886748a86d05279dfaad9e0ac5c7',
-};
+const FIREBASE_CONFIG_PATH = path.resolve(
+  process.cwd(),
+  'firebase-applet-config.json'
+);
+const FIREBASE_PROJECT_ID = (() => {
+  try {
+    const parsed = JSON.parse(
+      fs.readFileSync(FIREBASE_CONFIG_PATH, 'utf8')
+    ) as { projectId?: string };
+    return typeof parsed.projectId === 'string' ? parsed.projectId : '';
+  } catch {
+    return '';
+  }
+})();
 
 const DATA_DIR = path.resolve(process.cwd(), 'server-data');
 const STORE_PATH = path.resolve(DATA_DIR, 'candygame-inbox.json');
 if (!STORE_PATH.startsWith(DATA_DIR + path.sep)) {
   throw new Error('Invalid server data store path');
-}
-
-function hashPassword(password: string): string {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const derived = crypto.scryptSync(password, salt, 64).toString('hex');
-  return `${salt}:${derived}`;
-}
-
-function verifyPasswordHash(password: string, storedHash: string): boolean {
-  const parts = storedHash.split(':');
-  if (parts.length !== 2) return false;
-  const [salt, expectedHex] = parts;
-  if (!salt || !expectedHex) return false;
-  const expectedBuf = Buffer.from(expectedHex, 'hex');
-  const actualBuf = crypto.scryptSync(password, salt, 64);
-  if (expectedBuf.length !== actualBuf.length) return false;
-  return crypto.timingSafeEqual(expectedBuf, actualBuf);
 }
 
 function timingSafeTextEqual(a: string, b: string): boolean {
@@ -81,29 +61,17 @@ function ensureStore(): ServerStoreData {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
   if (!fs.existsSync(STORE_PATH)) {
-    const initial: ServerStoreData = {
-      adminAuth: { ...DEFAULT_ADMIN_AUTH },
-      messages: [],
-    };
+    const initial: ServerStoreData = { messages: [] };
     fs.writeFileSync(STORE_PATH, JSON.stringify(initial, null, 2), 'utf8');
     return initial;
   }
   try {
     const raw = fs.readFileSync(STORE_PATH, 'utf8');
     const parsed = JSON.parse(raw) as Partial<ServerStoreData>;
-    const adminAuth =
-      parsed.adminAuth &&
-      typeof parsed.adminAuth.username === 'string' &&
-      typeof parsed.adminAuth.passwordHash === 'string'
-        ? parsed.adminAuth
-        : { ...DEFAULT_ADMIN_AUTH };
     const messages = Array.isArray(parsed.messages) ? parsed.messages : [];
-    return { adminAuth, messages };
+    return { messages };
   } catch {
-    const fallback: ServerStoreData = {
-      adminAuth: { ...DEFAULT_ADMIN_AUTH },
-      messages: [],
-    };
+    const fallback: ServerStoreData = { messages: [] };
     fs.writeFileSync(STORE_PATH, JSON.stringify(fallback, null, 2), 'utf8');
     return fallback;
   }
@@ -116,117 +84,96 @@ function saveStore(data: ServerStoreData): void {
   fs.writeFileSync(STORE_PATH, JSON.stringify(data, null, 2), 'utf8');
 }
 
-function signToken(username: string): string {
-  const payload = Buffer.from(
-    JSON.stringify({
-      sub: username,
-      exp: Date.now() + SESSION_TTL_MS,
-      nonce: crypto.randomBytes(8).toString('hex'),
-    }),
-    'utf8'
-  ).toString('base64url');
-  const sig = crypto
-    .createHmac('sha256', SESSION_SECRET)
-    .update(payload)
-    .digest('hex');
-  return `${payload}.${sig}`;
+let cachedCerts: Record<string, string> = {};
+let cachedCertsExpiresAt = 0;
+
+async function getFirebasePublicCerts(): Promise<Record<string, string>> {
+  if (Date.now() < cachedCertsExpiresAt && Object.keys(cachedCerts).length > 0) {
+    return cachedCerts;
+  }
+  const res = await fetch(GOOGLE_CERTS_URL);
+  if (!res.ok) {
+    throw new Error('Unable to fetch Firebase verification certificates');
+  }
+  const certs = (await res.json()) as Record<string, string>;
+  const cacheControl = res.headers.get('cache-control') || '';
+  const maxAgeMatch = cacheControl.match(/max-age=(\d+)/i);
+  const maxAgeSec = maxAgeMatch ? Number(maxAgeMatch[1]) : 3600;
+  cachedCerts = certs;
+  cachedCertsExpiresAt = Date.now() + Math.max(60, maxAgeSec) * 1000;
+  return certs;
 }
 
-function verifyToken(token: string): { username: string } | null {
-  const dotIdx = token.indexOf('.');
-  if (dotIdx <= 0) return null;
-  const payload = token.slice(0, dotIdx);
-  const sig = token.slice(dotIdx + 1);
-  if (!payload || !sig) return null;
-
-  const expectedSig = crypto
-    .createHmac('sha256', SESSION_SECRET)
-    .update(payload)
-    .digest('hex');
-
-  if (!timingSafeTextEqual(sig, expectedSig)) {
-    return null;
-  }
+async function verifyFirebaseIdToken(
+  token: string
+): Promise<{ uid: string; email?: string } | null> {
+  if (!FIREBASE_PROJECT_ID) return null;
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  const [headerB64, payloadB64, sigB64] = parts;
 
   try {
-    const decoded = JSON.parse(
-      Buffer.from(payload, 'base64url').toString('utf8')
-    ) as { sub?: string; exp?: number };
+    const header = JSON.parse(
+      Buffer.from(headerB64, 'base64url').toString('utf8')
+    ) as { alg?: string; kid?: string };
+    if (header.alg !== 'RS256' || typeof header.kid !== 'string' || !header.kid) {
+      return null;
+    }
+
+    const certs = await getFirebasePublicCerts();
+    const certPem = certs[header.kid];
+    if (!certPem) return null;
+
+    const verifier = crypto.createVerify('RSA-SHA256');
+    verifier.update(`${headerB64}.${payloadB64}`);
+    verifier.end();
+    const signature = Buffer.from(sigB64, 'base64url');
+    if (!verifier.verify(certPem, signature)) {
+      return null;
+    }
+
+    const payload = JSON.parse(
+      Buffer.from(payloadB64, 'base64url').toString('utf8')
+    ) as {
+      aud?: string;
+      iss?: string;
+      sub?: string;
+      email?: string;
+      exp?: number;
+      iat?: number;
+      auth_time?: number;
+      firebase?: { sign_in_provider?: string };
+    };
+
+    const nowSec = Math.floor(Date.now() / 1000);
     if (
-      typeof decoded.sub !== 'string' ||
-      typeof decoded.exp !== 'number' ||
-      decoded.exp < Date.now()
+      payload.aud !== FIREBASE_PROJECT_ID ||
+      payload.iss !== `https://securetoken.google.com/${FIREBASE_PROJECT_ID}` ||
+      typeof payload.sub !== 'string' ||
+      !payload.sub ||
+      typeof payload.exp !== 'number' ||
+      payload.exp <= nowSec ||
+      typeof payload.iat !== 'number' ||
+      payload.iat > nowSec + 300 ||
+      typeof payload.auth_time !== 'number' ||
+      payload.auth_time > nowSec + 300 ||
+      payload.firebase?.sign_in_provider === 'anonymous'
     ) {
       return null;
     }
-    return { username: decoded.sub };
+
+    return { uid: payload.sub, email: payload.email };
   } catch {
     return null;
   }
 }
 
-function parseCookies(headerValue: string | undefined): Record<string, string> {
-  if (!headerValue) return {};
-  const result: Record<string, string> = {};
-  for (const part of headerValue.split(';')) {
-    const idx = part.indexOf('=');
-    if (idx > 0) {
-      const key = part.slice(0, idx).trim();
-      const val = part.slice(idx + 1).trim();
-      if (key) result[key] = decodeURIComponent(val);
-    }
-  }
-  return result;
-}
-
-function extractAdminToken(req: Request): { token: string; viaCookie: boolean } {
+function extractBearerToken(req: Request): string {
   const authHeader = req.headers.authorization;
   if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-    const bearer = authHeader.slice(7).trim();
-    if (bearer) return { token: bearer, viaCookie: false };
+    return authHeader.slice(7).trim();
   }
-  const cookies = parseCookies(req.headers.cookie);
-  const cookieToken = cookies[ADMIN_COOKIE_NAME];
-  if (cookieToken) {
-    return { token: cookieToken, viaCookie: true };
-  }
-  return { token: '', viaCookie: false };
-}
-
-function isSameOriginMutation(req: Request): boolean {
-  if (req.headers['x-requested-with'] === 'CandyGameAdmin') {
-    return true;
-  }
-  const origin = req.headers.origin;
-  if (!origin) return true;
-  const hostHeader = req.headers['x-forwarded-host'] || req.headers.host;
-  const host = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader;
-  if (!host) return false;
-  try {
-    const parsedOrigin = new URL(origin);
-    return parsedOrigin.host === host;
-  } catch {
-    return false;
-  }
-}
-
-function verifyAdminCredentials(username: string, password: string): boolean {
-  const envUser = process.env.ADMIN_USERNAME?.trim();
-  const envPass = process.env.ADMIN_PASSWORD;
-
-  if (envPass && envPass.length > 0) {
-    const expectedUser = envUser || 'leonscat';
-    return (
-      timingSafeTextEqual(username, expectedUser) &&
-      timingSafeTextEqual(password, envPass)
-    );
-  }
-
-  const store = ensureStore();
-  return (
-    timingSafeTextEqual(username, store.adminAuth.username) &&
-    verifyPasswordHash(password, store.adminAuth.passwordHash)
-  );
+  return '';
 }
 
 function stripHtmlTags(input: string): string {
@@ -313,26 +260,22 @@ interface AuthenticatedRequest extends Request {
   adminUser?: string;
 }
 
-function requireAdmin(
+async function requireAdmin(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
-): void {
-  const { token, viaCookie } = extractAdminToken(req);
+): Promise<void> {
+  const token = extractBearerToken(req);
   if (!token) {
     res.status(401).json({ error: 'Authentication required' });
     return;
   }
-  if (viaCookie && req.method !== 'GET' && !isSameOriginMutation(req)) {
-    res.status(403).json({ error: 'Cross-origin request rejected' });
-    return;
-  }
-  const verified = verifyToken(token);
+  const verified = await verifyFirebaseIdToken(token);
   if (!verified) {
-    res.status(401).json({ error: 'Invalid or expired admin session' });
+    res.status(401).json({ error: 'Invalid or expired Firebase ID token' });
     return;
   }
-  req.adminUser = verified.username;
+  req.adminUser = verified.email || verified.uid;
   next();
 }
 
@@ -370,114 +313,9 @@ async function startServer(): Promise<void> {
 
   app.use(express.json({ limit: '64kb' }));
 
-  app.post('/api/admin/login', (req: Request, res: Response) => {
-    const body = req.body as Record<string, unknown> | undefined;
-    const username =
-      typeof body?.username === 'string' ? body.username.trim() : '';
-    const password = typeof body?.password === 'string' ? body.password : '';
-    const useCookie = body?.useCookie === true;
-
-    if (!username || !password) {
-      res.status(400).json({ error: 'Username and password are required.' });
-      return;
-    }
-
-    if (!verifyAdminCredentials(username, password)) {
-      res.status(401).json({ error: 'Invalid username or password.' });
-      return;
-    }
-
-    const token = signToken(username);
-
-    if (useCookie) {
-      const isHttps =
-        req.secure || req.headers['x-forwarded-proto'] === 'https';
-      const cookieParts = [
-        `${ADMIN_COOKIE_NAME}=${encodeURIComponent(token)}`,
-        'Path=/',
-        'HttpOnly',
-        `Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`,
-        isHttps ? 'SameSite=None; Secure; Partitioned' : 'SameSite=Lax',
-      ];
-      res.setHeader('Set-Cookie', cookieParts.join('; '));
-    }
-
-    res.json({ token, username });
-  });
-
-  app.get('/api/admin/session', requireAdmin, (req: AuthenticatedRequest, res: Response) => {
-    res.json({ authenticated: true, username: req.adminUser });
-  });
-
-  app.post('/api/admin/logout', (req: Request, res: Response) => {
-    const isHttps =
-      req.secure || req.headers['x-forwarded-proto'] === 'https';
-    const clearParts = [
-      `${ADMIN_COOKIE_NAME}=`,
-      'Path=/',
-      'HttpOnly',
-      'Max-Age=0',
-      isHttps ? 'SameSite=None; Secure; Partitioned' : 'SameSite=Lax',
-    ];
-    res.setHeader('Set-Cookie', clearParts.join('; '));
+  app.get('/api/health', (_req: Request, res: Response) => {
     res.json({ ok: true });
   });
-
-  app.put(
-    '/api/admin/credentials',
-    requireAdmin,
-    (req: AuthenticatedRequest, res: Response) => {
-      if (process.env.ADMIN_PASSWORD && process.env.ADMIN_PASSWORD.length > 0) {
-        res.status(409).json({
-          error:
-            'Credentials are managed via server environment variables (ADMIN_USERNAME / ADMIN_PASSWORD).',
-        });
-        return;
-      }
-
-      const body = req.body as Record<string, unknown> | undefined;
-      const currentPassword =
-        typeof body?.currentPassword === 'string' ? body.currentPassword : '';
-      const newUsername =
-        typeof body?.newUsername === 'string' ? body.newUsername.trim() : '';
-      const newPassword =
-        typeof body?.newPassword === 'string' ? body.newPassword : '';
-
-      const store = ensureStore();
-      if (!verifyPasswordHash(currentPassword, store.adminAuth.passwordHash)) {
-        res.status(401).json({ error: 'Current password is incorrect.' });
-        return;
-      }
-
-      if (newUsername && (newUsername.length < 3 || newUsername.length > 64)) {
-        res
-          .status(400)
-          .json({ error: 'Username must be between 3 and 64 characters.' });
-        return;
-      }
-
-      if (newPassword && (newPassword.length < 6 || newPassword.length > 128)) {
-        res
-          .status(400)
-          .json({ error: 'New password must be between 6 and 128 characters.' });
-        return;
-      }
-
-      const updatedUsername = newUsername || store.adminAuth.username;
-      const updatedHash = newPassword
-        ? hashPassword(newPassword)
-        : store.adminAuth.passwordHash;
-
-      store.adminAuth = {
-        username: updatedUsername,
-        passwordHash: updatedHash,
-      };
-      saveStore(store);
-
-      const nextToken = signToken(updatedUsername);
-      res.json({ ok: true, username: updatedUsername, token: nextToken });
-    }
-  );
 
   // Public contact form endpoint delivering straight to candyteam@info.com server inbox
   app.post('/api/contact', (req: Request, res: Response) => {
@@ -525,7 +363,7 @@ async function startServer(): Promise<void> {
   });
 
   // Inbound email webhook for forwarding external emails sent to candyteam@info.com
-  app.post('/api/inbound-email', (req: Request, res: Response) => {
+  app.post('/api/inbound-email', async (req: Request, res: Response) => {
     const configuredSecret = process.env.INBOUND_EMAIL_SECRET?.trim();
     const providedSecret =
       typeof req.headers['x-inbound-secret'] === 'string'
@@ -538,8 +376,8 @@ async function startServer(): Promise<void> {
     }
 
     if (!authorized) {
-      const { token } = extractAdminToken(req);
-      if (token && verifyToken(token)) {
+      const token = extractBearerToken(req);
+      if (token && (await verifyFirebaseIdToken(token))) {
         authorized = true;
       }
     }

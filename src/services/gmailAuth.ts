@@ -4,21 +4,39 @@ import {
   getAuth,
   GoogleAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
+  updatePassword,
   User,
 } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 export const GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
 
-const defaultApp = getApps().find((a) => a.name === '[DEFAULT]') || initializeApp(firebaseConfig);
+const defaultApp =
+  getApps().find((a) => a.name === '[DEFAULT]') || initializeApp(firebaseConfig);
 export const adminAuth = getAuth(defaultApp);
 
 const gmailApp =
   getApps().find((a) => a.name === 'gmail-sync') ||
   initializeApp(firebaseConfig, 'gmail-sync');
 const gmailAuthInstance = getAuth(gmailApp);
+
+export function resolveAdminEmail(identifier: string): string {
+  const clean = identifier.trim();
+  if (!clean) return '';
+  return clean.includes('@') ? clean : `${clean.toLowerCase()}@candygame.app`;
+}
+
+export function formatAdminDisplayName(user: User | null): string {
+  const email = user?.email || '';
+  if (!email) return 'Admin';
+  return email.endsWith('@candygame.app')
+    ? email.slice(0, -'@candygame.app'.length)
+    : email;
+}
 
 export function isPasswordAuthenticatedUser(user: User | null): boolean {
   if (!user) return false;
@@ -28,11 +46,30 @@ export function isPasswordAuthenticatedUser(user: User | null): boolean {
 }
 
 export async function signInAdminWithEmailPassword(
-  email: string,
+  identifier: string,
   password: string
 ): Promise<User> {
+  const email = resolveAdminEmail(identifier);
   const result = await signInWithEmailAndPassword(adminAuth, email, password);
   return result.user;
+}
+
+export async function sendAdminPasswordReset(identifier: string): Promise<void> {
+  const email = resolveAdminEmail(identifier);
+  await sendPasswordResetEmail(adminAuth, email);
+}
+
+export async function changeAdminPassword(
+  currentPassword: string,
+  newPassword: string
+): Promise<void> {
+  const user = adminAuth.currentUser;
+  if (!user || !user.email) {
+    throw new Error('No active Firebase password session found.');
+  }
+  const credential = EmailAuthProvider.credential(user.email, currentPassword);
+  await reauthenticateWithCredential(user, credential);
+  await updatePassword(user, newPassword);
 }
 
 export async function signOutAdminAuth(): Promise<void> {

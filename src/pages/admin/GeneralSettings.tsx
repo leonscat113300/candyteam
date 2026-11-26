@@ -8,12 +8,11 @@ import { FormInput } from '../../components/ui/FormInput';
 import { FormSelect } from '../../components/ui/FormSelect';
 import { Toast } from '../../components/ui/Toast';
 import { useContent } from '../../hooks/useContent';
+import { changeAdminPassword } from '../../services/gmailAuth';
 import { GeneralSettings as GeneralSettingsType } from '../../types/content';
-import { API_BASE, apiUrl } from '../../utils/api';
 
 export const GeneralSettings: React.FC = () => {
-  const { adminToken, adminUsername, staticMode, updateAdminAuth, setHeaderMeta } =
-    useOutletContext<AdminOutletContext>();
+  const { adminUsername, setHeaderMeta } = useOutletContext<AdminOutletContext>();
   const { store, updateSettings, resetToDefaults } = useContent();
 
   const [draft, setDraft] = useState<GeneralSettingsType | null>(null);
@@ -21,8 +20,8 @@ export const GeneralSettings: React.FC = () => {
   const [toast, setToast] = useState('');
 
   const [currentPassword, setCurrentPassword] = useState('');
-  const [newUsername, setNewUsername] = useState(adminUsername || '');
   const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [credError, setCredError] = useState('');
   const [savingCreds, setSavingCreds] = useState(false);
 
@@ -37,10 +36,6 @@ export const GeneralSettings: React.FC = () => {
     if (!store) return;
     setDraft(structuredClone(store.settings));
   }, [store]);
-
-  useEffect(() => {
-    setNewUsername(adminUsername || '');
-  }, [adminUsername]);
 
   if (!store || !draft) return null;
 
@@ -58,49 +53,33 @@ export const GeneralSettings: React.FC = () => {
       setCredError('Please enter your current password.');
       return;
     }
-    if (!newUsername.trim() && !newPassword) {
-      setCredError('Enter a new username or new password to update.');
+    if (newPassword.length < 6) {
+      setCredError('New password must be at least 6 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setCredError('New password and confirmation do not match.');
       return;
     }
 
     setSavingCreds(true);
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        'X-Requested-With': 'CandyGameAdmin',
-      };
-      if (adminToken) {
-        headers.Authorization = `Bearer ${adminToken}`;
-      }
-      const response = await fetch(apiUrl('/api/admin/credentials'), {
-        method: 'PUT',
-        credentials: API_BASE ? 'omit' : 'same-origin',
-        headers,
-        body: JSON.stringify({
-          currentPassword,
-          newUsername: newUsername.trim(),
-          newPassword,
-        }),
-      });
-      const payload = (await response.json().catch(() => ({}))) as {
-        token?: string;
-        username?: string;
-        error?: string;
-      };
-      if (!response.ok || !payload.token) {
-        setCredError(payload.error || 'Unable to update credentials.');
-        return;
-      }
-
-      updateAdminAuth({
-        token: payload.token,
-        username: payload.username || newUsername.trim(),
-      });
+      await changeAdminPassword(currentPassword, newPassword);
       setCurrentPassword('');
       setNewPassword('');
-      setToast('Admin credentials updated on server.');
-    } catch {
-      setCredError('Network error while updating credentials.');
+      setConfirmPassword('');
+      setToast('Password updated in Firebase Authentication.');
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      if (code === 'auth/wrong-password' || code === 'auth/invalid-credential') {
+        setCredError('Current password is incorrect.');
+      } else if (code === 'auth/weak-password') {
+        setCredError('Please choose a stronger password (at least 6 characters).');
+      } else if (code === 'auth/requires-recent-login') {
+        setCredError('Please sign out and sign back in before changing your password.');
+      } else {
+        setCredError('Unable to update password right now.');
+      }
     } finally {
       setSavingCreds(false);
     }
@@ -211,72 +190,61 @@ export const GeneralSettings: React.FC = () => {
         </div>
       </form>
 
-      {staticMode ? (
-        <div className="candy-glass-card rounded-[2rem] p-6 sm:p-8 space-y-2">
-          <div className="flex items-center gap-2.5">
-            <KeyRound size={18} className="text-[#cebdff]" />
-            <h2 className="font-display text-xl font-bold text-white">
-              Private Admin Credentials
-            </h2>
-          </div>
-          <p className="text-sm text-[#cbc3d6]">
-            On static hosting (GitHub Pages), username and password authentication uses your configured server API or Firebase Authentication Email/Password account.
-          </p>
+      <form
+        onSubmit={handleUpdateCredentials}
+        className="candy-glass-card rounded-[2rem] p-6 sm:p-8 space-y-5"
+      >
+        <div className="flex items-center gap-2.5">
+          <KeyRound size={18} className="text-[#cebdff]" />
+          <h2 className="font-display text-xl font-bold text-white">
+            Account Password ({adminUsername || 'Admin'})
+          </h2>
         </div>
-      ) : (
-        <form
-          onSubmit={handleUpdateCredentials}
-          className="candy-glass-card rounded-[2rem] p-6 sm:p-8 space-y-5"
-        >
-          <div className="flex items-center gap-2.5">
-            <KeyRound size={18} className="text-[#cebdff]" />
-            <h2 className="font-display text-xl font-bold text-white">
-              Admin Access Credentials
-            </h2>
-          </div>
-          <p className="text-sm text-[#cbc3d6]">
-            Update your server-stored administrator username and password.
-          </p>
+        <p className="text-sm text-[#cbc3d6]">
+          Update your Firebase Authentication password for this admin account.
+        </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <FormInput
-              label="Current Password"
-              type="password"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              placeholder="Enter current password"
-              required
-            />
-            <FormInput
-              label="Admin Username"
-              value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
-              placeholder="Enter username"
-            />
-            <FormInput
-              label="New Password (optional)"
-              type="password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="Min 6 characters"
-            />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <FormInput
+            label="Current Password"
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder="Enter current password"
+            required
+          />
+          <FormInput
+            label="New Password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="Min 6 characters"
+            required
+          />
+          <FormInput
+            label="Confirm New Password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Re-enter new password"
+            required
+          />
+        </div>
 
-          {credError ? <p className="text-sm text-[#ffb4ab]">{credError}</p> : null}
+        {credError ? <p className="text-sm text-[#ffb4ab]">{credError}</p> : null}
 
-          <div className="flex justify-end pt-2">
-            <Button
-              type="submit"
-              variant="primary"
-              size="md"
-              disabled={savingCreds}
-              leftIcon={<Save size={15} />}
-            >
-              {savingCreds ? 'Updating...' : 'Update Credentials'}
-            </Button>
-          </div>
-        </form>
-      )}
+        <div className="flex justify-end pt-2">
+          <Button
+            type="submit"
+            variant="primary"
+            size="md"
+            disabled={savingCreds}
+            leftIcon={<Save size={15} />}
+          >
+            {savingCreds ? 'Updating...' : 'Update Password'}
+          </Button>
+        </div>
+      </form>
 
       <div className="candy-glass-card rounded-[2rem] p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">

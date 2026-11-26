@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, Outlet } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onIdTokenChanged } from 'firebase/auth';
 import { ArrowLeft, Eye, EyeOff, Lock } from 'lucide-react';
 import { AdminHeader } from '../../components/admin/AdminHeader';
 import { AdminSidebar } from '../../components/admin/AdminSidebar';
@@ -10,18 +10,19 @@ import { FormInput } from '../../components/ui/FormInput';
 import { useContent } from '../../hooks/useContent';
 import {
   adminAuth,
+  formatAdminDisplayName,
   isPasswordAuthenticatedUser,
+  sendAdminPasswordReset,
   signInAdminWithEmailPassword,
   signOutAdminAuth,
 } from '../../services/gmailAuth';
-import { API_BASE, apiUrl } from '../../utils/api';
+import { apiUrl } from '../../utils/api';
 
 export interface AdminOutletContext {
   adminToken: string;
   adminUsername: string;
   authenticated: boolean;
   staticMode: boolean;
-  updateAdminAuth: (next: { token: string; username: string }) => void;
   setHeaderMeta: (meta: {
     title: string;
     subtitle?: string;
@@ -40,8 +41,10 @@ export const AdminLayout: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
   const [authError, setAuthError] = useState('');
-  const [staticMode, setStaticMode] = useState(false);
+  const [authNotice, setAuthNotice] = useState('');
+  const [staticMode, setStaticMode] = useState(true);
   const [headerMeta, setHeaderMeta] = useState<{
     title: string;
     subtitle?: string;
@@ -53,59 +56,44 @@ export const AdminLayout: React.FC = () => {
 
   useEffect(() => {
     let active = true;
-    let unsubscribeFirebase: (() => void) | null = null;
 
-    const subscribeStaticPasswordAuth = () => {
-      setStaticMode(true);
-      unsubscribeFirebase = onAuthStateChanged(adminAuth, (user) => {
-        if (!active) return;
-        if (isPasswordAuthenticatedUser(user)) {
-          setAuthenticated(true);
-          const email = user?.email || 'Admin';
-          setAdminUsername(
-            email.endsWith('@candygame.app')
-              ? email.slice(0, -'@candygame.app'.length)
-              : email
-          );
-        } else {
-          setAuthenticated(false);
-          setAdminUsername('');
-        }
-        setCheckingSession(false);
-      });
-    };
-
-    fetch(apiUrl('/api/admin/session'), {
-      credentials: API_BASE ? 'omit' : 'same-origin',
-    })
+    fetch(apiUrl('/api/health'))
       .then(async (res) => {
         if (!active) return;
         const contentType = res.headers.get('content-type') || '';
-        if (!contentType.includes('application/json')) {
-          subscribeStaticPasswordAuth();
-          return;
-        }
-        setStaticMode(false);
-        if (res.ok) {
-          const data = (await res.json().catch(() => ({}))) as {
-            authenticated?: boolean;
-            username?: string;
-          };
-          if (data.authenticated) {
-            setAuthenticated(true);
-            setAdminUsername(data.username || '');
-          }
-        }
-        setCheckingSession(false);
+        setStaticMode(!(res.ok && contentType.includes('application/json')));
       })
       .catch(() => {
         if (!active) return;
-        subscribeStaticPasswordAuth();
+        setStaticMode(true);
       });
+
+    const unsubscribe = onIdTokenChanged(adminAuth, async (user) => {
+      if (!active) return;
+      if (isPasswordAuthenticatedUser(user) && user) {
+        try {
+          const token = await user.getIdToken();
+          if (!active) return;
+          setAdminToken(token);
+          setAdminUsername(formatAdminDisplayName(user));
+          setAuthenticated(true);
+        } catch {
+          if (!active) return;
+          setAdminToken('');
+          setAdminUsername('');
+          setAuthenticated(false);
+        }
+      } else {
+        setAdminToken('');
+        setAdminUsername('');
+        setAuthenticated(false);
+      }
+      setCheckingSession(false);
+    });
 
     return () => {
       active = false;
-      unsubscribeFirebase?.();
+      unsubscribe();
     };
   }, []);
 
@@ -117,23 +105,23 @@ export const AdminLayout: React.FC = () => {
     );
   }
 
-  const signInStaticWithPassword = async (
-    identifier: string,
-    secret: string
-  ) => {
-    const cleanIdentifier = identifier.trim();
-    const resolvedEmail = cleanIdentifier.includes('@')
-      ? cleanIdentifier
-      : `${cleanIdentifier.toLowerCase()}@candygame.app`;
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setAuthNotice('');
 
+    const trimmedUser = username.trim();
+    if (!trimmedUser || !password) {
+      setAuthError('Please enter your email or username and password.');
+      return;
+    }
+
+    setSigningIn(true);
     try {
-      const user = await signInAdminWithEmailPassword(resolvedEmail, secret);
-      const email = user.email || resolvedEmail;
-      setAdminUsername(
-        email.endsWith('@candygame.app')
-          ? email.slice(0, -'@candygame.app'.length)
-          : email
-      );
+      const user = await signInAdminWithEmailPassword(trimmedUser, password);
+      const token = await user.getIdToken();
+      setAdminToken(token);
+      setAdminUsername(formatAdminDisplayName(user));
       setAuthenticated(true);
       setPassword('');
     } catch (err) {
@@ -147,98 +135,52 @@ export const AdminLayout: React.FC = () => {
           `Add ${window.location.hostname} to Firebase Console -> Authentication -> Settings -> Authorized domains.`
         );
       } else if (code === 'auth/too-many-requests') {
-        setAuthError('Too many failed attempts. Please wait a moment and try again.');
-      } else {
-        setAuthError('Invalid username or password. Please try again.');
-      }
-    }
-  };
-
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError('');
-    const trimmedUser = username.trim();
-    if (!trimmedUser || !password) {
-      setAuthError('Please enter your username and password.');
-      return;
-    }
-
-    setSigningIn(true);
-    try {
-      if (staticMode) {
-        await signInStaticWithPassword(trimmedUser, password);
-        return;
-      }
-
-      const response = await fetch(apiUrl('/api/admin/login'), {
-        method: 'POST',
-        credentials: API_BASE ? 'omit' : 'same-origin',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'CandyGameAdmin',
-        },
-        body: JSON.stringify({
-          username: trimmedUser,
-          password,
-          useCookie: !API_BASE,
-        }),
-      });
-      const contentType = response.headers.get('content-type') || '';
-      if (!contentType.includes('application/json')) {
-        setStaticMode(true);
-        await signInStaticWithPassword(trimmedUser, password);
-        return;
-      }
-      const payload = (await response.json().catch(() => ({}))) as {
-        token?: string;
-        username?: string;
-        error?: string;
-      };
-
-      if (!response.ok || !payload.token) {
         setAuthError(
-          payload.error || 'Invalid username or password. Please try again.'
+          'Too many failed attempts. Please wait a moment and try again.'
         );
-        return;
-      }
-
-      setAdminToken(payload.token);
-      setAdminUsername(payload.username || trimmedUser);
-      setAuthenticated(true);
-      setPassword('');
-    } catch {
-      if (staticMode) {
-        setAuthError('Unable to sign in right now. Please try again.');
       } else {
-        setAuthError('Unable to reach authentication server. Please try again.');
+        setAuthError('Invalid email/username or password. Please try again.');
       }
     } finally {
       setSigningIn(false);
     }
   };
 
-  const handleSignOut = async () => {
-    if (staticMode) {
-      await signOutAdminAuth().catch(() => {});
-    } else {
-      try {
-        await fetch(apiUrl('/api/admin/logout'), {
-          method: 'POST',
-          credentials: API_BASE ? 'omit' : 'same-origin',
-          headers: {
-            'X-Requested-With': 'CandyGameAdmin',
-          },
-        });
-      } catch {
-        // Ignore network errors on sign out
-      }
+  const handlePasswordReset = async () => {
+    setAuthError('');
+    setAuthNotice('');
+    const trimmedUser = username.trim();
+    if (!trimmedUser || !trimmedUser.includes('@')) {
+      setAuthError('Enter your email address above first to receive a password reset link.');
+      return;
     }
+    setResettingPassword(true);
+    try {
+      await sendAdminPasswordReset(trimmedUser);
+      setAuthNotice(`Password reset link sent to ${trimmedUser}.`);
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      if (code === 'auth/operation-not-allowed') {
+        setAuthError(
+          'Email/Password sign-in must be enabled in Firebase Console first.'
+        );
+      } else {
+        setAuthError('Unable to send password reset email. Please verify your email address.');
+      }
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOutAdminAuth().catch(() => {});
     setAuthenticated(false);
     setAdminToken('');
     setAdminUsername('');
     setUsername('');
     setPassword('');
     setAuthError('');
+    setAuthNotice('');
   };
 
   if (!authenticated) {
@@ -262,27 +204,37 @@ export const AdminLayout: React.FC = () => {
               Admin Panel Sign In
             </h1>
             <p className="text-sm text-[#cbc3d6]">
-              Enter your private administrator username and password to access CandyGame management tools.
+              Sign in with your administrator email or username and password.
             </p>
           </div>
 
           <form onSubmit={handleSignIn} className="space-y-4">
             <FormInput
-              label={staticMode ? 'Username or Email' : 'Username'}
+              label="Email or Username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder={staticMode ? 'Enter email or username' : 'Enter username'}
+              placeholder="Enter email or username"
               autoComplete="username"
               required
             />
 
             <div className="space-y-1.5">
-              <label
-                htmlFor="admin-password-input"
-                className="block text-sm font-medium text-[#e7defa]"
-              >
-                Password
-              </label>
+              <div className="flex items-center justify-between gap-2">
+                <label
+                  htmlFor="admin-password-input"
+                  className="block text-sm font-medium text-[#e7defa]"
+                >
+                  Password
+                </label>
+                <button
+                  type="button"
+                  onClick={() => void handlePasswordReset()}
+                  disabled={resettingPassword}
+                  className="text-xs font-medium text-[#cebdff] hover:text-white transition-colors cursor-pointer"
+                >
+                  {resettingPassword ? 'Sending...' : 'Forgot password?'}
+                </button>
+              </div>
               <div className="relative">
                 <input
                   id="admin-password-input"
@@ -308,6 +260,12 @@ export const AdminLayout: React.FC = () => {
             {authError ? (
               <p className="text-sm text-[#ffb4ab]" role="alert">
                 {authError}
+              </p>
+            ) : null}
+
+            {authNotice ? (
+              <p className="text-sm text-emerald-300" role="status">
+                {authNotice}
               </p>
             ) : null}
 
@@ -358,11 +316,6 @@ export const AdminLayout: React.FC = () => {
                 adminUsername,
                 authenticated,
                 staticMode,
-                updateAdminAuth: ({ token, username: nextUser }) => {
-                  setAdminToken(token);
-                  setAdminUsername(nextUser);
-                  setAuthenticated(true);
-                },
                 setHeaderMeta,
               } satisfies AdminOutletContext
             }
