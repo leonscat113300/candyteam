@@ -9,9 +9,35 @@ import {
 import firebaseConfig from '../../firebase-applet-config.json';
 
 export const GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
+export const OWNER_ADMIN_EMAIL = 'enrique113300@gmail.com';
 
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-const auth = getAuth(app);
+export const firebaseAuth = getAuth(app);
+const auth = firebaseAuth;
+
+const basicOwnerProvider = new GoogleAuthProvider();
+basicOwnerProvider.setCustomParameters({
+  prompt: 'select_account',
+});
+
+export function isAuthorizedOwner(user: User | null): boolean {
+  return Boolean(
+    user?.email &&
+      user.emailVerified &&
+      user.email.toLowerCase() === OWNER_ADMIN_EMAIL
+  );
+}
+
+export async function signInOwnerWithGoogle(): Promise<User> {
+  const result = await signInWithPopup(auth, basicOwnerProvider);
+  if (!isAuthorizedOwner(result.user)) {
+    await auth.signOut();
+    throw new Error(
+      'Access denied. Only the authorized studio owner account can access the Admin Panel.'
+    );
+  }
+  return result.user;
+}
 
 const provider = new GoogleAuthProvider();
 for (const scope of GMAIL_SCOPES) {

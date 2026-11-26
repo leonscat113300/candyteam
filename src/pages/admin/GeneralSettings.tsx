@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { KeyRound, RotateCcw, Save } from 'lucide-react';
-import {
-  AdminOutletContext,
-  updateStaticAdminCredentials,
-} from '../../app/layouts/AdminLayout';
+import { AdminOutletContext } from '../../app/layouts/AdminLayout';
 import { Button } from '../../components/ui/Button';
 import { ConfirmationDialog } from '../../components/ui/ConfirmationDialog';
 import { FormInput } from '../../components/ui/FormInput';
@@ -67,26 +64,6 @@ export const GeneralSettings: React.FC = () => {
 
     setSavingCreds(true);
     try {
-      if (staticMode) {
-        const res = await updateStaticAdminCredentials({
-          currentPassword,
-          newUsername: newUsername.trim(),
-          newPassword,
-        });
-        if (!res.ok) {
-          setCredError(res.error || 'Unable to update credentials.');
-          return;
-        }
-        updateAdminAuth({
-          token: '',
-          username: res.username || newUsername.trim(),
-        });
-        setCurrentPassword('');
-        setNewPassword('');
-        setToast('Browser admin credentials updated.');
-        return;
-      }
-
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         'X-Requested-With': 'CandyGameAdmin',
@@ -233,60 +210,72 @@ export const GeneralSettings: React.FC = () => {
         </div>
       </form>
 
-      <form
-        onSubmit={handleUpdateCredentials}
-        className="candy-glass-card rounded-[2rem] p-6 sm:p-8 space-y-5"
-      >
-        <div className="flex items-center gap-2.5">
-          <KeyRound size={18} className="text-[#cebdff]" />
-          <h2 className="font-display text-xl font-bold text-white">
-            Admin Access Credentials
-          </h2>
+      {staticMode ? (
+        <div className="candy-glass-card rounded-[2rem] p-6 sm:p-8 space-y-2">
+          <div className="flex items-center gap-2.5">
+            <KeyRound size={18} className="text-[#cebdff]" />
+            <h2 className="font-display text-xl font-bold text-white">
+              Private Admin Access
+            </h2>
+          </div>
+          <p className="text-sm text-[#cbc3d6]">
+            On static hosting (GitHub Pages), Admin Panel access is privately restricted to your authorized studio owner Google account. Username and password login is managed on the Node.js server.
+          </p>
         </div>
-        <p className="text-sm text-[#cbc3d6]">
-          {staticMode
-            ? 'Update the administrator username and password stored for this browser.'
-            : 'Update your server-stored administrator username and password.'}
-        </p>
+      ) : (
+        <form
+          onSubmit={handleUpdateCredentials}
+          className="candy-glass-card rounded-[2rem] p-6 sm:p-8 space-y-5"
+        >
+          <div className="flex items-center gap-2.5">
+            <KeyRound size={18} className="text-[#cebdff]" />
+            <h2 className="font-display text-xl font-bold text-white">
+              Admin Access Credentials
+            </h2>
+          </div>
+          <p className="text-sm text-[#cbc3d6]">
+            Update your server-stored administrator username and password.
+          </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormInput
-            label="Current Password"
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            placeholder="Enter current password"
-            required
-          />
-          <FormInput
-            label="Admin Username"
-            value={newUsername}
-            onChange={(e) => setNewUsername(e.target.value)}
-            placeholder="Enter username"
-          />
-          <FormInput
-            label="New Password (optional)"
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Min 6 characters"
-          />
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormInput
+              label="Current Password"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter current password"
+              required
+            />
+            <FormInput
+              label="Admin Username"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              placeholder="Enter username"
+            />
+            <FormInput
+              label="New Password (optional)"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Min 6 characters"
+            />
+          </div>
 
-        {credError ? <p className="text-sm text-[#ffb4ab]">{credError}</p> : null}
+          {credError ? <p className="text-sm text-[#ffb4ab]">{credError}</p> : null}
 
-        <div className="flex justify-end pt-2">
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            disabled={savingCreds}
-            leftIcon={<Save size={15} />}
-          >
-            {savingCreds ? 'Updating...' : 'Update Credentials'}
-          </Button>
-        </div>
-      </form>
+          <div className="flex justify-end pt-2">
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              disabled={savingCreds}
+              leftIcon={<Save size={15} />}
+            >
+              {savingCreds ? 'Updating...' : 'Update Credentials'}
+            </Button>
+          </div>
+        </form>
+      )}
 
       <div className="candy-glass-card rounded-[2rem] p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
