@@ -21,6 +21,127 @@ export interface AdminOutletContext {
   }) => void;
 }
 
+const STATIC_CRED_STORAGE_KEY = 'candygame_static_admin_v1';
+const STATIC_UNLOCK_SESSION_KEY = 'candygame_static_unlocked_v1';
+
+interface StaticAdminRecord {
+  username: string;
+  salt: string;
+  hash: string;
+}
+
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function hexToBytes(hex: string): Uint8Array {
+  const out = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < out.length; i += 1) {
+    out[i] = Number.parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+}
+
+function constantTimeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i += 1) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
+async function deriveStaticHash(password: string, saltHex: string): Promise<string> {
+  if (typeof window === 'undefined' || !window.crypto?.subtle) {
+    throw new Error('Secure browser cryptography is required.');
+  }
+  const encoder = new TextEncoder();
+  const keyMaterial = await window.crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+  const saltBytes = hexToBytes(saltHex);
+  const saltBuffer = saltBytes.buffer.slice(
+    saltBytes.byteOffset,
+    saltBytes.byteOffset + saltBytes.byteLength
+  ) as ArrayBuffer;
+  const derived = await window.crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: saltBuffer,
+      iterations: 100000,
+      hash: 'SHA-256',
+    },
+    keyMaterial,
+    256
+  );
+  return bytesToHex(new Uint8Array(derived));
+}
+
+function readStaticAdminRecord(): StaticAdminRecord | null {
+  try {
+    const raw = window.localStorage.getItem(STATIC_CRED_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<StaticAdminRecord>;
+    if (
+      typeof parsed.username === 'string' &&
+      typeof parsed.salt === 'string' &&
+      typeof parsed.hash === 'string' &&
+      parsed.username &&
+      parsed.salt &&
+      parsed.hash
+    ) {
+      return {
+        username: parsed.username,
+        salt: parsed.salt,
+        hash: parsed.hash,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function updateStaticAdminCredentials(params: {
+  currentPassword: string;
+  newUsername?: string;
+  newPassword?: string;
+}): Promise<{ ok: boolean; username?: string; error?: string }> {
+  const existing = readStaticAdminRecord();
+  if (!existing) {
+    return { ok: false, error: 'No static admin credentials configured yet.' };
+  }
+  const currentHash = await deriveStaticHash(params.currentPassword, existing.salt);
+  if (!constantTimeEqual(currentHash, existing.hash)) {
+    return { ok: false, error: 'Current password is incorrect.' };
+  }
+  const nextUsername = params.newUsername?.trim() || existing.username;
+  if (nextUsername.length < 3 || nextUsername.length > 64) {
+    return { ok: false, error: 'Username must be between 3 and 64 characters.' };
+  }
+  if (params.newPassword && (params.newPassword.length < 6 || params.newPassword.length > 128)) {
+    return { ok: false, error: 'New password must be between 6 and 128 characters.' };
+  }
+  const nextSalt = params.newPassword
+    ? bytesToHex(window.crypto.getRandomValues(new Uint8Array(16)))
+    : existing.salt;
+  const nextHash = params.newPassword
+    ? await deriveStaticHash(params.newPassword, nextSalt)
+    : existing.hash;
+
+  const updated: StaticAdminRecord = {
+    username: nextUsername,
+    salt: nextSalt,
+    hash: nextHash,
+  };
+  window.localStorage.setItem(STATIC_CRED_STORAGE_KEY, JSON.stringify(updated));
+  return { ok: true, username: nextUsername };
+}
+
 export const AdminLayout: React.FC = () => {
   const { store, loading } = useContent();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -30,11 +151,12 @@ export const AdminLayout: React.FC = () => {
   const [adminUsername, setAdminUsername] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [signingIn, setSigningIn] = useState(false);
   const [authError, setAuthError] = useState('');
-  const [backendAvailable, setBackendAvailable] = useState(true);
   const [staticMode, setStaticMode] = useState(false);
+  const [needsStaticSetup, setNeedsStaticSetup] = useState(false);
   const [headerMeta, setHeaderMeta] = useState<{
     title: string;
     subtitle?: string;
@@ -46,6 +168,26 @@ export const AdminLayout: React.FC = () => {
 
   useEffect(() => {
     let active = true;
+    const enterStaticMode = () => {
+      if (!active) return;
+      setStaticMode(true);
+      const record = readStaticAdminRecord();
+      if (!record) {
+        setNeedsStaticSetup(true);
+        setAuthenticated(false);
+        return;
+      }
+      setNeedsStaticSetup(false);
+      const isUnlocked =
+        window.sessionStorage.getItem(STATIC_UNLOCK_SESSION_KEY) === '1';
+      if (isUnlocked) {
+        setAuthenticated(true);
+        setAdminUsername(record.username);
+      } else {
+        setAuthenticated(false);
+      }
+    };
+
     fetch('/api/admin/session', {
       credentials: 'same-origin',
     })
@@ -53,14 +195,11 @@ export const AdminLayout: React.FC = () => {
         if (!active) return;
         const contentType = res.headers.get('content-type') || '';
         if (!contentType.includes('application/json')) {
-          setBackendAvailable(false);
-          setStaticMode(true);
-          setAuthenticated(true);
-          setAdminUsername('Public Admin');
+          enterStaticMode();
           return;
         }
-        setBackendAvailable(true);
         setStaticMode(false);
+        setNeedsStaticSetup(false);
         if (res.ok) {
           const data = (await res.json().catch(() => ({}))) as {
             authenticated?: boolean;
@@ -73,11 +212,7 @@ export const AdminLayout: React.FC = () => {
         }
       })
       .catch(() => {
-        if (!active) return;
-        setBackendAvailable(false);
-        setStaticMode(true);
-        setAuthenticated(true);
-        setAdminUsername('Public Admin');
+        enterStaticMode();
       })
       .finally(() => {
         if (active) setCheckingSession(false);
@@ -96,12 +231,73 @@ export const AdminLayout: React.FC = () => {
     );
   }
 
+  const handleStaticSetup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+
+    const cleanUser = username.trim();
+    if (cleanUser.length < 3 || cleanUser.length > 64) {
+      setAuthError('Username must be between 3 and 64 characters.');
+      return;
+    }
+    if (password.length < 6 || password.length > 128) {
+      setAuthError('Password must be between 6 and 128 characters.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setAuthError('Passwords do not match.');
+      return;
+    }
+
+    setSigningIn(true);
+    try {
+      const salt = bytesToHex(window.crypto.getRandomValues(new Uint8Array(16)));
+      const hash = await deriveStaticHash(password, salt);
+      const record: StaticAdminRecord = { username: cleanUser, salt, hash };
+      window.localStorage.setItem(STATIC_CRED_STORAGE_KEY, JSON.stringify(record));
+      window.sessionStorage.setItem(STATIC_UNLOCK_SESSION_KEY, '1');
+      setNeedsStaticSetup(false);
+      setAdminUsername(cleanUser);
+      setAuthenticated(true);
+      setPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      setAuthError(
+        err instanceof Error ? err.message : 'Unable to save admin credentials.'
+      );
+    } finally {
+      setSigningIn(false);
+    }
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError('');
     setSigningIn(true);
 
     try {
+      if (staticMode) {
+        const record = readStaticAdminRecord();
+        if (!record) {
+          setNeedsStaticSetup(true);
+          setAuthError('Please create an admin username and password first.');
+          return;
+        }
+        const candidateHash = await deriveStaticHash(password, record.salt);
+        if (
+          !constantTimeEqual(username.trim(), record.username) ||
+          !constantTimeEqual(candidateHash, record.hash)
+        ) {
+          setAuthError('Invalid username or password. Please try again.');
+          return;
+        }
+        window.sessionStorage.setItem(STATIC_UNLOCK_SESSION_KEY, '1');
+        setAdminUsername(record.username);
+        setAuthenticated(true);
+        setPassword('');
+        return;
+      }
+
       const response = await fetch('/api/admin/login', {
         method: 'POST',
         credentials: 'same-origin',
@@ -117,10 +313,12 @@ export const AdminLayout: React.FC = () => {
       });
       const contentType = response.headers.get('content-type') || '';
       if (!contentType.includes('application/json')) {
-        setBackendAvailable(false);
-        setAuthError(
-          'Admin authentication requires running the Node.js server (static hosting like GitHub Pages serves public pages only).'
-        );
+        setStaticMode(true);
+        const record = readStaticAdminRecord();
+        if (!record) {
+          setNeedsStaticSetup(true);
+          setAuthError('Please set your browser admin username and password.');
+        }
         return;
       }
       const payload = (await response.json().catch(() => ({}))) as {
@@ -141,29 +339,34 @@ export const AdminLayout: React.FC = () => {
       setAuthenticated(true);
       setPassword('');
     } catch {
-      setAuthError('Unable to reach authentication server. Please try again.');
+      setAuthError('Unable to sign in. Please try again.');
     } finally {
       setSigningIn(false);
     }
   };
 
   const handleSignOut = async () => {
-    try {
-      await fetch('/api/admin/logout', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'X-Requested-With': 'CandyGameAdmin',
-        },
-      });
-    } catch {
-      // Ignore network errors on sign out
+    if (staticMode) {
+      window.sessionStorage.removeItem(STATIC_UNLOCK_SESSION_KEY);
+    } else {
+      try {
+        await fetch('/api/admin/logout', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: {
+            'X-Requested-With': 'CandyGameAdmin',
+          },
+        });
+      } catch {
+        // Ignore network errors on sign out
+      }
     }
     setAuthenticated(false);
     setAdminToken('');
     setAdminUsername('');
     setUsername('');
     setPassword('');
+    setConfirmPassword('');
     setAuthError('');
   };
 
@@ -182,23 +385,28 @@ export const AdminLayout: React.FC = () => {
             <BrandLogo />
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#7652D6]/20 border border-[#BDA7FF]/25 text-xs font-semibold text-[#cebdff]">
               <Lock size={13} />
-              <span>Protected Admin Area</span>
+              <span>
+                {staticMode
+                  ? needsStaticSetup
+                    ? 'First-Time Admin Setup'
+                    : 'Public Web Admin Sign In'
+                  : 'Protected Admin Area'}
+              </span>
             </div>
             <h1 className="font-display text-2xl font-bold text-white">
-              Admin Panel Sign In
+              {needsStaticSetup ? 'Set Admin Username & Password' : 'Admin Panel Sign In'}
             </h1>
             <p className="text-sm text-[#cbc3d6]">
-              Enter your studio administrator username and password to access CandyGame management tools.
+              {needsStaticSetup
+                ? 'Choose a username and password to protect your Admin Panel on this static site.'
+                : 'Enter your administrator username and password to access CandyGame management tools.'}
             </p>
           </div>
 
-          {!backendAvailable ? (
-            <div className="rounded-2xl bg-[#151123] border border-[#BDA7FF]/25 p-3.5 text-xs text-[#cbc3d6] leading-relaxed">
-              Static hosting mode detected (such as GitHub Pages). Public website pages work normally, while protected Admin login and server inbox APIs require running the Node.js server.
-            </div>
-          ) : null}
-
-          <form onSubmit={handleSignIn} className="space-y-4">
+          <form
+            onSubmit={needsStaticSetup ? handleStaticSetup : handleSignIn}
+            className="space-y-4"
+          >
             <FormInput
               label="Username"
               value={username}
@@ -221,8 +429,8 @@ export const AdminLayout: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  autoComplete="current-password"
+                  placeholder={needsStaticSetup ? 'Min 6 characters' : 'Enter password'}
+                  autoComplete={needsStaticSetup ? 'new-password' : 'current-password'}
                   required
                   className="w-full rounded-2xl bg-[#151123] border border-[#BDA7FF]/20 pl-4 pr-11 py-2.5 text-sm text-[#e7defa] placeholder-[#948e9f] focus:outline-none focus:border-[#BDA7FF] transition-colors"
                 />
@@ -237,6 +445,18 @@ export const AdminLayout: React.FC = () => {
               </div>
             </div>
 
+            {needsStaticSetup ? (
+              <FormInput
+                label="Confirm Password"
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter password"
+                autoComplete="new-password"
+                required
+              />
+            ) : null}
+
             {authError ? (
               <p className="text-sm text-[#ffb4ab]" role="alert">
                 {authError}
@@ -250,7 +470,11 @@ export const AdminLayout: React.FC = () => {
               disabled={signingIn}
               className="w-full"
             >
-              {signingIn ? 'Signing In...' : 'Sign In to Admin Panel'}
+              {signingIn
+                ? 'Please wait...'
+                : needsStaticSetup
+                  ? 'Save Credentials & Enter Admin'
+                  : 'Sign In to Admin Panel'}
             </Button>
           </form>
 
@@ -273,7 +497,7 @@ export const AdminLayout: React.FC = () => {
       <AdminSidebar
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
-        onSignOut={staticMode ? undefined : handleSignOut}
+        onSignOut={handleSignOut}
       />
       <div className="flex-1 min-w-0 flex flex-col">
         <AdminHeader
@@ -283,14 +507,6 @@ export const AdminLayout: React.FC = () => {
           onOpenSidebar={() => setMobileOpen(true)}
         />
         <main className="flex-1 p-5 sm:p-8 max-w-7xl w-full mx-auto">
-          {staticMode ? (
-            <div className="mb-6 rounded-2xl bg-[#1F1A35] border border-[#BDA7FF]/25 px-4 py-3 text-xs text-[#cbc3d6] flex flex-wrap items-center justify-between gap-2">
-              <span>
-                Static Hosting Mode (GitHub Pages): Admin panel access is open in your browser and edits save locally.
-              </span>
-              <span className="text-[#cebdff] font-medium">Public Browser Mode</span>
-            </div>
-          ) : null}
           <Outlet
             context={
               {
