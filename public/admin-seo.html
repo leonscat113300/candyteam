@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SEO Settings — CandyGame Admin</title>
+    <link rel="stylesheet" href="./assets/style.css" />
+  </head>
+  <body>
+    <div class="cg-admin-shell">
+      <aside class="cg-admin-sidebar" data-cg-admin-sidebar>
+        <div>
+          <a href="./admin.html" class="cg-brand">
+            <img src="./assets/aistudio/Candy_Team_Game_Studio_Logo_c7b30204.webp" alt="CandyGame" />
+            <span>CandyGame</span>
+          </a>
+          <nav class="cg-admin-nav" aria-label="Admin navigation">
+            <a href="./admin.html">Dashboard</a>
+            <a href="./admin-games.html">Games</a>
+            <a href="./admin-game-editor.html">Add / Edit Game</a>
+            <a href="./admin-categories.html">Categories</a>
+            <a href="./admin-downloads.html">Downloads &amp; Links</a>
+            <a href="./admin-content.html">Website Content</a>
+            <a href="./admin-studio-contact.html">Studio &amp; Contact</a>
+            <a href="./admin-seo.html" class="active">SEO Settings</a>
+            <a href="./admin-settings.html">General Settings</a>
+          </nav>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+          <a href="./home.html" class="cg-btn cg-btn-secondary cg-btn-sm" style="width:100%;">View Public Site &rarr;</a>
+          <button type="button" data-cg-admin-signout class="cg-btn cg-btn-danger cg-btn-sm" style="width:100%;">Sign Out</button>
+        </div>
+      </aside>
+
+      <div class="cg-admin-content">
+        <header class="cg-admin-topbar">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <button type="button" class="cg-menu-btn" data-cg-admin-menu-toggle aria-label="Open menu">&#9776;</button>
+            <div>
+              <h1 style="font-size:1.35rem;color:#fff;">SEO Settings</h1>
+              <p style="font-size:0.8rem;color:var(--cg-on-surface-variant);">Configure page titles, meta descriptions, and canonical URLs</p>
+            </div>
+          </div>
+        </header>
+
+        <main class="cg-admin-main">
+          <form class="cg-glass-card" data-cg-save-form="SEO settings" style="display:flex;flex-direction:column;gap:1.25rem;">
+            <h2 style="font-size:1.25rem;color:#fff;">Global SEO Defaults</h2>
+            <div class="cg-grid-2">
+              <div class="cg-field">
+                <label class="cg-label">Site Name</label>
+                <input class="cg-input" value="CandyGame" />
+              </div>
+              <div class="cg-field">
+                <label class="cg-label">Title Template</label>
+                <input class="cg-input" value="%s | CandyGame" />
+              </div>
+            </div>
+            <div class="cg-field">
+              <label class="cg-label">Default Meta Title</label>
+              <input class="cg-input" value="CandyGame — Mobile Game Development Studio" />
+            </div>
+            <div class="cg-field">
+              <label class="cg-label">Default Meta Description</label>
+              <textarea rows="3" class="cg-textarea">CandyGame is a mobile game development studio building Brain Challenge and Color World for Android and Google Play.</textarea>
+            </div>
+            <div style="display:flex;justify-content:flex-end;">
+              <button type="submit" class="cg-btn cg-btn-primary">Save SEO Settings</button>
+            </div>
+          </form>
+        </main>
+      </div>
+    </div>
+
+    <script src="./assets/main.js"></script>
+  </body>
+</html>

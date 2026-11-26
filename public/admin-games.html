@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Games Management — CandyGame Admin</title>
+    <link rel="stylesheet" href="./assets/style.css" />
+  </head>
+  <body>
+    <div class="cg-admin-shell">
+      <aside class="cg-admin-sidebar" data-cg-admin-sidebar>
+        <div>
+          <a href="./admin.html" class="cg-brand">
+            <img src="./assets/aistudio/Candy_Team_Game_Studio_Logo_c7b30204.webp" alt="CandyGame" />
+            <span>CandyGame</span>
+          </a>
+          <nav class="cg-admin-nav" aria-label="Admin navigation">
+            <a href="./admin.html">Dashboard</a>
+            <a href="./admin-games.html" class="active">Games</a>
+            <a href="./admin-game-editor.html">Add / Edit Game</a>
+            <a href="./admin-categories.html">Categories</a>
+            <a href="./admin-downloads.html">Downloads &amp; Links</a>
+            <a href="./admin-content.html">Website Content</a>
+            <a href="./admin-studio-contact.html">Studio &amp; Contact</a>
+            <a href="./admin-seo.html">SEO Settings</a>
+            <a href="./admin-settings.html">General Settings</a>
+          </nav>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+          <a href="./home.html" class="cg-btn cg-btn-secondary cg-btn-sm" style="width:100%;">View Public Site &rarr;</a>
+          <button type="button" data-cg-admin-signout class="cg-btn cg-btn-danger cg-btn-sm" style="width:100%;">Sign Out</button>
+        </div>
+      </aside>
+
+      <div class="cg-admin-content">
+        <header class="cg-admin-topbar">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <button type="button" class="cg-menu-btn" data-cg-admin-menu-toggle aria-label="Open menu">&#9776;</button>
+            <div>
+              <h1 style="font-size:1.35rem;color:#fff;">Games Management</h1>
+              <p style="font-size:0.8rem;color:var(--cg-on-surface-variant);">Manage CandyGame titles, status, and edit actions</p>
+            </div>
+          </div>
+          <a href="./admin-game-editor.html" class="cg-btn cg-btn-primary cg-btn-sm">+ Add Game</a>
+        </header>
+
+        <main class="cg-admin-main">
+          <div class="cg-glass-card">
+            <div class="cg-table-wrap">
+              <table class="cg-table">
+                <thead>
+                  <tr>
+                    <th>Game</th>
+                    <th>Platform / Store</th>
+                    <th>Status</th>
+                    <th style="text-align:right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <img src="./assets/aistudio/Kawaii_Brain_Puzzle_Icon-Photoroom_d3e2b289.png" alt="Brain Challenge" class="cg-game-icon-sm" />
+                        <div>
+                          <div class="font-display" style="font-weight:600;color:#fff;">Brain Challenge</div>
+                          <div style="font-size:0.75rem;color:var(--cg-outline);">/games/brain-challenge</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>Android &middot; Google Play</td>
+                    <td><span class="cg-badge cg-badge-active">Published</span></td>
+                    <td style="text-align:right;">
+                      <a href="./brain-challenge.html" class="cg-btn cg-btn-secondary cg-btn-sm">View</a>
+                      <a href="./admin-game-editor.html" class="cg-btn cg-btn-secondary cg-btn-sm">Edit</a>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <div style="display:flex;align-items:center;gap:0.75rem;">
+                        <img src="./assets/aistudio/gyf-Photoroom_3378e090.png" alt="Color World" class="cg-game-icon-sm" />
+                        <div>
+                          <div class="font-display" style="font-weight:600;color:#fff;">Color World</div>
+                          <div style="font-size:0.75rem;color:var(--cg-outline);">/games/color-world</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>Android &middot; Google Play</td>
+                    <td><span class="cg-badge cg-badge-active">Published</span></td>
+                    <td style="text-align:right;">
+                      <a href="./color-world.html" class="cg-btn cg-btn-secondary cg-btn-sm">View</a>
+                      <a href="./admin-game-editor.html" class="cg-btn cg-btn-secondary cg-btn-sm">Edit</a>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script src="./assets/main.js"></script>
+  </body>
+</html>

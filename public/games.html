@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Games Catalog — Android &amp; Google Play | CandyGame</title>
+    <meta name="description" content="Browse CandyGame mobile titles including Brain Challenge and Color World." />
+    <link rel="stylesheet" href="./assets/style.css" />
+  </head>
+  <body>
+    <div class="cg-bg-glow" aria-hidden="true"></div>
+
+    <header class="cg-header">
+      <div class="cg-container cg-header-inner">
+        <a href="./home.html" class="cg-brand">
+          <img src="./assets/aistudio/Candy_Team_Game_Studio_Logo_c7b30204.webp" alt="CandyGame" />
+          <span>CandyGame</span>
+        </a>
+        <nav class="cg-nav" aria-label="Primary navigation">
+          <a href="./home.html">Home</a>
+          <a href="./games.html" class="active">Games</a>
+          <a href="./about.html">About Us</a>
+          <a href="./contact.html">Contact</a>
+        </nav>
+        <a href="./games.html" class="cg-btn cg-btn-primary cg-btn-sm cg-header-cta">Explore Games</a>
+        <button type="button" class="cg-menu-btn" data-cg-menu-toggle aria-expanded="false" aria-label="Toggle menu">&#9776;</button>
+      </div>
+      <div class="cg-mobile-drawer" data-cg-mobile-drawer>
+        <nav aria-label="Mobile navigation">
+          <a href="./home.html">Home</a>
+          <a href="./games.html" class="active">Games</a>
+          <a href="./about.html">About Us</a>
+          <a href="./contact.html">Contact</a>
+        </nav>
+        <a href="./games.html" class="cg-btn cg-btn-primary" style="width:100%;">Explore Games</a>
+      </div>
+    </header>
+
+    <main class="cg-main">
+      <section class="cg-container cg-section" style="padding-bottom:5rem;">
+        <div style="max-width:48rem;display:flex;flex-direction:column;gap:1rem;margin-bottom:2.5rem;">
+          <p class="cg-eyebrow" style="margin-bottom:0;">Google Play Releases</p>
+          <h1 class="cg-h1" style="font-size:clamp(2.25rem,4vw,3rem);">Our Android Game Catalog</h1>
+          <p class="cg-lead">
+            Browse all titles developed by CandyGame. Search to explore game mechanics, platform details, and store availability.
+          </p>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:1rem;padding:1rem;border-radius:1.5rem;background:var(--cg-surface-low);border:1px solid rgba(189,167,255,0.12);margin-bottom:2rem;">
+          <p style="font-size:0.875rem;color:var(--cg-on-surface-variant);">2 published games</p>
+          <div style="width:100%;max-width:18rem;">
+            <input id="cg-games-search" type="search" class="cg-input" placeholder="Search games..." />
+          </div>
+        </div>
+
+        <div class="cg-grid-2">
+          <article class="cg-glass-card" data-cg-game-card data-search="Brain Challenge Android Google Play puzzle offline" style="display:flex;flex-direction:column;justify-content:space-between;gap:1.75rem;">
+            <div style="display:flex;flex-direction:column;gap:1.25rem;">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;">
+                <img src="./assets/aistudio/Kawaii_Brain_Puzzle_Icon-Photoroom_d3e2b289.png" alt="Brain Challenge" class="cg-game-icon" />
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0.65rem;">
+                <p style="font-size:0.75rem;color:var(--cg-on-surface-variant);">Android &middot; Google Play</p>
+                <h2 style="font-size:1.5rem;color:#fff;">Brain Challenge</h2>
+                <p style="font-size:0.9375rem;color:var(--cg-on-surface-variant);line-height:1.6;">
+                  Challenge your mind with creative puzzles, tricky brain teasers, and unexpected challenges! Test your logic, boost your creativity, think outside the box, and discover surprising solutions in a fun and addictive casual puzzle game. Play anytime, anywhere, even offline!
+                </p>
+              </div>
+            </div>
+            <div style="padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-wrap:wrap;gap:0.75rem;">
+              <a href="./brain-challenge.html" class="cg-btn cg-btn-primary cg-btn-sm">View Game &rarr;</a>
+            </div>
+          </article>
+
+          <article class="cg-glass-card" data-cg-game-card data-search="Color World Android Google Play coloring kids creativity" style="display:flex;flex-direction:column;justify-content:space-between;gap:1.75rem;">
+            <div style="display:flex;flex-direction:column;gap:1.25rem;">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;">
+                <img src="./assets/aistudio/gyf-Photoroom_3378e090.png" alt="Color World" class="cg-game-icon" />
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0.65rem;">
+                <p style="font-size:0.75rem;color:var(--cg-on-surface-variant);">Android &middot; Google Play</p>
+                <h2 style="font-size:1.5rem;color:#fff;">Color World</h2>
+                <p style="font-size:0.9375rem;color:var(--cg-on-surface-variant);line-height:1.6;">
+                  Explore a colorful world of creativity! Color adorable pictures, paint cute characters, choose your favorite colors, and enjoy a fun and relaxing coloring adventure designed for kids. Let your imagination shine with Color World!
+                </p>
+              </div>
+            </div>
+            <div style="padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.1);display:flex;flex-wrap:wrap;gap:0.75rem;">
+              <a href="./color-world.html" class="cg-btn cg-btn-primary cg-btn-sm">View Game &rarr;</a>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="cg-footer">
+      <div class="cg-container">
+        <div class="cg-footer-grid">
+          <div style="display:flex;flex-direction:column;gap:1rem;">
+            <a href="./home.html" class="cg-brand">
+              <img src="./assets/aistudio/Candy_Team_Game_Studio_Logo_c7b30204.webp" alt="CandyGame" />
+              <span>CandyGame</span>
+            </a>
+            <p style="font-size:0.875rem;color:var(--cg-on-surface-variant);line-height:1.6;max-width:24rem;">
+              Independent mobile game development studio crafting playful, polished Android experiences.
+            </p>
+            <p style="font-size:0.8125rem;color:var(--cg-on-surface-variant);">
+              Email: <a href="mailto:candyteam@info.com" style="color:var(--cg-primary);">candyteam@info.com</a>
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:0.65rem;">
+              <a href="https://www.instagram.com/candystudiogame?gwpx=ODJ6cWs0Z2owbDZk" target="_blank" rel="noopener noreferrer" class="cg-social-pill" style="padding:0.45rem 0.9rem;font-size:0.78rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><defs><linearGradient id="cg-ig-g" x1="2" y1="22" x2="22" y2="2" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#F58529"/><stop offset="50%" stop-color="#DD2A7B"/><stop offset="100%" stop-color="#8134AF"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#cg-ig-g)"/><circle cx="12" cy="12" r="4.2" stroke="#fff" stroke-width="1.8"/><circle cx="17.2" cy="6.8" r="1.2" fill="#fff"/></svg>
+                <span>Instagram</span>
+              </a>
+              <a href="https://www.youtube.com/channel/UCIkhGA6X_ynyBiJ4RP2W2GA" target="_blank" rel="noopener noreferrer" class="cg-social-pill" style="padding:0.45rem 0.9rem;font-size:0.78rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2" y="4.5" width="20" height="15" rx="4.5" fill="#FF0000"/><path d="M10 9L15.8 12L10 15V9Z" fill="#fff"/></svg>
+                <span>YouTube</span>
+              </a>
+            </div>
+          </div>
+          <div class="cg-footer-cols">
+            <div>
+              <h3 style="font-size:0.875rem;color:#fff;">Studio</h3>
+              <ul>
+                <li><a href="./home.html">Home</a></li>
+                <li><a href="./games.html">Games</a></li>
+                <li><a href="./about.html">About Us</a></li>
+                <li><a href="./contact.html">Contact</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 style="font-size:0.875rem;color:#fff;">Games</h3>
+              <ul>
+                <li><a href="./brain-challenge.html">Brain Challenge</a></li>
+                <li><a href="./color-world.html">Color World</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 style="font-size:0.875rem;color:#fff;">Connect</h3>
+              <ul>
+                <li><a href="https://www.instagram.com/candystudiogame?gwpx=ODJ6cWs0Z2owbDZk" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+                <li><a href="https://www.youtube.com/channel/UCIkhGA6X_ynyBiJ4RP2W2GA" target="_blank" rel="noopener noreferrer">YouTube</a></li>
+                <li><a href="./admin.html" style="color:var(--cg-accent);">&#128274; Admin Panel</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="cg-footer-bottom">
+          <p>&copy; 2026 CandyGame Studio. All rights reserved.</p>
+          <p>Android &amp; Google Play Studio</p>
+        </div>
+      </div>
+    </footer>
+
+    <script src="./assets/main.js"></script>
+  </body>
+</html>

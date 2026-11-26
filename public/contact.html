@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contact — CandyGame Studio</title>
+    <meta name="description" content="Get in touch with CandyGame at candyteam@info.com for support, press inquiries, or partnership discussions." />
+    <link rel="stylesheet" href="./assets/style.css" />
+  </head>
+  <body>
+    <div class="cg-bg-glow" aria-hidden="true"></div>
+
+    <header class="cg-header">
+      <div class="cg-container cg-header-inner">
+        <a href="./home.html" class="cg-brand">
+          <img src="./assets/aistudio/Candy_Team_Game_Studio_Logo_c7b30204.webp" alt="CandyGame" />
+          <span>CandyGame</span>
+        </a>
+        <nav class="cg-nav" aria-label="Primary navigation">
+          <a href="./home.html">Home</a>
+          <a href="./games.html">Games</a>
+          <a href="./about.html">About Us</a>
+          <a href="./contact.html" class="active">Contact</a>
+        </nav>
+        <a href="./games.html" class="cg-btn cg-btn-primary cg-btn-sm cg-header-cta">Explore Games</a>
+        <button type="button" class="cg-menu-btn" data-cg-menu-toggle aria-expanded="false" aria-label="Toggle menu">&#9776;</button>
+      </div>
+      <div class="cg-mobile-drawer" data-cg-mobile-drawer>
+        <nav aria-label="Mobile navigation">
+          <a href="./home.html">Home</a>
+          <a href="./games.html">Games</a>
+          <a href="./about.html">About Us</a>
+          <a href="./contact.html" class="active">Contact</a>
+        </nav>
+        <a href="./games.html" class="cg-btn cg-btn-primary" style="width:100%;">Explore Games</a>
+      </div>
+    </header>
+
+    <main class="cg-main">
+      <section class="cg-container cg-section" style="display:flex;flex-direction:column;gap:2.5rem;padding-bottom:5rem;">
+        <div style="max-width:48rem;display:flex;flex-direction:column;gap:1rem;">
+          <p class="cg-eyebrow" style="margin-bottom:0;">Studio Inquiries &amp; Player Support</p>
+          <h1 class="cg-h1" style="font-size:clamp(2.25rem,4vw,3rem);">Connect with CandyGame</h1>
+          <p class="cg-lead">
+            Have feedback about Brain Challenge or Color World, or want to reach the CandyGame team? Send us a message below or email us directly at candyteam@info.com.
+          </p>
+        </div>
+
+        <div class="cg-grid-2">
+          <div class="cg-glass-card">
+            <h2 style="font-size:1.5rem;color:#fff;margin-bottom:0.5rem;">Send a Message</h2>
+            <p style="font-size:0.875rem;color:var(--cg-on-surface-variant);margin-bottom:1.5rem;">
+              Send your inquiry directly to CandyGame (candyteam@info.com). Messages are also logged in the Admin Panel inbox.
+            </p>
+            <form id="cg-contact-form" style="display:flex;flex-direction:column;gap:1rem;" novalidate>
+              <div class="cg-field">
+                <label class="cg-label" for="c-name">Your Name</label>
+                <input id="c-name" name="name" class="cg-input" placeholder="Alex Morgan" required />
+              </div>
+              <div class="cg-field">
+                <label class="cg-label" for="c-email">Email Address</label>
+                <input id="c-email" name="email" type="email" class="cg-input" placeholder="you@example.com" required />
+              </div>
+              <div class="cg-field">
+                <label class="cg-label" for="c-subject">Subject</label>
+                <input id="c-subject" name="subject" class="cg-input" placeholder="Player feedback, press, or partnership" />
+              </div>
+              <div class="cg-field">
+                <label class="cg-label" for="c-message">Message</label>
+                <textarea id="c-message" name="message" rows="5" class="cg-textarea" placeholder="How can our studio help you?" required></textarea>
+              </div>
+              <p id="cg-contact-status" style="font-size:0.875rem;"></p>
+              <div>
+                <button type="submit" class="cg-btn cg-btn-primary cg-btn-lg">Send Message</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="cg-glass-card" style="display:flex;flex-direction:column;gap:1.5rem;">
+            <div>
+              <h2 style="font-size:1.5rem;color:#fff;margin-bottom:0.5rem;">Studio Contact Information</h2>
+              <p style="font-size:0.875rem;color:var(--cg-on-surface-variant);line-height:1.6;">
+                Reach CandyGame directly via email or connect with us on our official social channels.
+              </p>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:0.85rem;">
+              <div style="padding:1rem;border-radius:1rem;background:var(--cg-canvas);border:1px solid rgba(189,167,255,0.15);">
+                <p style="font-size:0.75rem;color:var(--cg-outline);margin-bottom:0.25rem;">Studio Email</p>
+                <a href="mailto:candyteam@info.com" style="font-size:0.95rem;font-weight:600;color:var(--cg-primary);">candyteam@info.com</a>
+              </div>
+              <div style="padding:1rem;border-radius:1rem;background:var(--cg-canvas);border:1px solid rgba(189,167,255,0.15);">
+                <p style="font-size:0.75rem;color:var(--cg-outline);margin-bottom:0.25rem;">Player Support Email</p>
+                <a href="mailto:candyteam@info.com" style="font-size:0.95rem;font-weight:600;color:var(--cg-primary);">candyteam@info.com</a>
+              </div>
+            </div>
+
+            <div>
+              <p style="font-size:0.875rem;font-weight:600;color:#fff;margin-bottom:0.75rem;">Official Social Channels</p>
+              <div style="display:flex;flex-wrap:wrap;gap:0.75rem;">
+                <a href="https://www.instagram.com/candystudiogame?gwpx=ODJ6cWs0Z2owbDZk" target="_blank" rel="noopener noreferrer" class="cg-social-pill">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><defs><linearGradient id="cg-ig-ct" x1="2" y1="22" x2="22" y2="2" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#F58529"/><stop offset="50%" stop-color="#DD2A7B"/><stop offset="100%" stop-color="#8134AF"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#cg-ig-ct)"/><circle cx="12" cy="12" r="4.2" stroke="#fff" stroke-width="1.8"/><circle cx="17.2" cy="6.8" r="1.2" fill="#fff"/></svg>
+                  <span>Instagram</span>
+                </a>
+                <a href="https://www.youtube.com/channel/UCIkhGA6X_ynyBiJ4RP2W2GA" target="_blank" rel="noopener noreferrer" class="cg-social-pill">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2" y="4.5" width="20" height="15" rx="4.5" fill="#FF0000"/><path d="M10 9L15.8 12L10 15V9Z" fill="#fff"/></svg>
+                  <span>YouTube</span>
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="cg-footer">
+      <div class="cg-container">
+        <div class="cg-footer-grid">
+          <div style="display:flex;flex-direction:column;gap:1rem;">
+            <a href="./home.html" class="cg-brand">
+              <img src="./assets/aistudio/Candy_Team_Game_Studio_Logo_c7b30204.webp" alt="CandyGame" />
+              <span>CandyGame</span>
+            </a>
+            <p style="font-size:0.875rem;color:var(--cg-on-surface-variant);line-height:1.6;max-width:24rem;">
+              Independent mobile game development studio crafting playful, polished Android experiences.
+            </p>
+            <p style="font-size:0.8125rem;color:var(--cg-on-surface-variant);">
+              Email: <a href="mailto:candyteam@info.com" style="color:var(--cg-primary);">candyteam@info.com</a>
+            </p>
+            <div style="display:flex;flex-wrap:wrap;gap:0.65rem;">
+              <a href="https://www.instagram.com/candystudiogame?gwpx=ODJ6cWs0Z2owbDZk" target="_blank" rel="noopener noreferrer" class="cg-social-pill" style="padding:0.45rem 0.9rem;font-size:0.78rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><defs><linearGradient id="cg-ig-ctf" x1="2" y1="22" x2="22" y2="2" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#F58529"/><stop offset="50%" stop-color="#DD2A7B"/><stop offset="100%" stop-color="#8134AF"/></linearGradient></defs><rect x="2" y="2" width="20" height="20" rx="6" fill="url(#cg-ig-ctf)"/><circle cx="12" cy="12" r="4.2" stroke="#fff" stroke-width="1.8"/><circle cx="17.2" cy="6.8" r="1.2" fill="#fff"/></svg>
+                <span>Instagram</span>
+              </a>
+              <a href="https://www.youtube.com/channel/UCIkhGA6X_ynyBiJ4RP2W2GA" target="_blank" rel="noopener noreferrer" class="cg-social-pill" style="padding:0.45rem 0.9rem;font-size:0.78rem;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="2" y="4.5" width="20" height="15" rx="4.5" fill="#FF0000"/><path d="M10 9L15.8 12L10 15V9Z" fill="#fff"/></svg>
+                <span>YouTube</span>
+              </a>
+            </div>
+          </div>
+          <div class="cg-footer-cols">
+            <div>
+              <h3 style="font-size:0.875rem;color:#fff;">Studio</h3>
+              <ul>
+                <li><a href="./home.html">Home</a></li>
+                <li><a href="./games.html">Games</a></li>
+                <li><a href="./about.html">About Us</a></li>
+                <li><a href="./contact.html">Contact</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 style="font-size:0.875rem;color:#fff;">Games</h3>
+              <ul>
+                <li><a href="./brain-challenge.html">Brain Challenge</a></li>
+                <li><a href="./color-world.html">Color World</a></li>
+              </ul>
+            </div>
+            <div>
+              <h3 style="font-size:0.875rem;color:#fff;">Connect</h3>
+              <ul>
+                <li><a href="https://www.instagram.com/candystudiogame?gwpx=ODJ6cWs0Z2owbDZk" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+                <li><a href="https://www.youtube.com/channel/UCIkhGA6X_ynyBiJ4RP2W2GA" target="_blank" rel="noopener noreferrer">YouTube</a></li>
+                <li><a href="./admin.html" style="color:var(--cg-accent);">&#128274; Admin Panel</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="cg-footer-bottom">
+          <p>&copy; 2026 CandyGame Studio. All rights reserved.</p>
+          <p>Android &amp; Google Play Studio</p>
+        </div>
+      </div>
+    </footer>
+
+    <script src="./assets/main.js"></script>
+  </body>
+</html>

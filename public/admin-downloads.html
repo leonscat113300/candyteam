@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Downloads &amp; Links — CandyGame Admin</title>
+    <link rel="stylesheet" href="./assets/style.css" />
+  </head>
+  <body>
+    <div class="cg-admin-shell">
+      <aside class="cg-admin-sidebar" data-cg-admin-sidebar>
+        <div>
+          <a href="./admin.html" class="cg-brand">
+            <img src="./assets/aistudio/Candy_Team_Game_Studio_Logo_c7b30204.webp" alt="CandyGame" />
+            <span>CandyGame</span>
+          </a>
+          <nav class="cg-admin-nav" aria-label="Admin navigation">
+            <a href="./admin.html">Dashboard</a>
+            <a href="./admin-games.html">Games</a>
+            <a href="./admin-game-editor.html">Add / Edit Game</a>
+            <a href="./admin-categories.html">Categories</a>
+            <a href="./admin-downloads.html" class="active">Downloads &amp; Links</a>
+            <a href="./admin-content.html">Website Content</a>
+            <a href="./admin-studio-contact.html">Studio &amp; Contact</a>
+            <a href="./admin-seo.html">SEO Settings</a>
+            <a href="./admin-settings.html">General Settings</a>
+          </nav>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+          <a href="./home.html" class="cg-btn cg-btn-secondary cg-btn-sm" style="width:100%;">View Public Site &rarr;</a>
+          <button type="button" data-cg-admin-signout class="cg-btn cg-btn-danger cg-btn-sm" style="width:100%;">Sign Out</button>
+        </div>
+      </aside>
+
+      <div class="cg-admin-content">
+        <header class="cg-admin-topbar">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <button type="button" class="cg-menu-btn" data-cg-admin-menu-toggle aria-label="Open menu">&#9776;</button>
+            <div>
+              <h1 style="font-size:1.35rem;color:#fff;">Downloads &amp; Links Management</h1>
+              <p style="font-size:0.8rem;color:var(--cg-on-surface-variant);">Configure Google Play URLs, Android package IDs, and versions</p>
+            </div>
+          </div>
+        </header>
+
+        <main class="cg-admin-main">
+          <form class="cg-glass-card" data-cg-save-form="Brain Challenge links" style="display:flex;flex-direction:column;gap:1.25rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+              <div style="display:flex;align-items:center;gap:0.85rem;">
+                <img src="./assets/aistudio/Kawaii_Brain_Puzzle_Icon-Photoroom_d3e2b289.png" alt="Brain Challenge" class="cg-game-icon-sm" />
+                <div>
+                  <h2 style="font-size:1.2rem;color:#fff;">Brain Challenge</h2>
+                  <p style="font-size:0.75rem;color:var(--cg-on-surface-variant);">Android &middot; Google Play</p>
+                </div>
+              </div>
+              <span class="cg-badge cg-badge-draft">URL Not Set</span>
+            </div>
+            <div class="cg-grid-2">
+              <div class="cg-field">
+                <label class="cg-label">Google Play Store URL</label>
+                <input type="url" class="cg-input" placeholder="https://play.google.com/store/apps/details?id=..." />
+              </div>
+              <div class="cg-field">
+                <label class="cg-label">Android Package ID</label>
+                <input class="cg-input" placeholder="com.candygame.brainchallenge" />
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;">
+              <button type="submit" class="cg-btn cg-btn-primary">Save Store Links</button>
+            </div>
+          </form>
+
+          <form class="cg-glass-card" data-cg-save-form="Color World links" style="display:flex;flex-direction:column;gap:1.25rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+              <div style="display:flex;align-items:center;gap:0.85rem;">
+                <img src="./assets/aistudio/gyf-Photoroom_3378e090.png" alt="Color World" class="cg-game-icon-sm" />
+                <div>
+                  <h2 style="font-size:1.2rem;color:#fff;">Color World</h2>
+                  <p style="font-size:0.75rem;color:var(--cg-on-surface-variant);">Android &middot; Google Play</p>
+                </div>
+              </div>
+              <span class="cg-badge cg-badge-draft">URL Not Set</span>
+            </div>
+            <div class="cg-grid-2">
+              <div class="cg-field">
+                <label class="cg-label">Google Play Store URL</label>
+                <input type="url" class="cg-input" placeholder="https://play.google.com/store/apps/details?id=..." />
+              </div>
+              <div class="cg-field">
+                <label class="cg-label">Android Package ID</label>
+                <input class="cg-input" placeholder="com.candygame.colorworld" />
+              </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;">
+              <button type="submit" class="cg-btn cg-btn-primary">Save Store Links</button>
+            </div>
+          </form>
+        </main>
+      </div>
+    </div>
+
+    <script src="./assets/main.js"></script>
+  </body>
+</html>

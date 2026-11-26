@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add / Edit Game — CandyGame Admin</title>
+    <link rel="stylesheet" href="./assets/style.css" />
+  </head>
+  <body>
+    <div class="cg-admin-shell">
+      <aside class="cg-admin-sidebar" data-cg-admin-sidebar>
+        <div>
+          <a href="./admin.html" class="cg-brand">
+            <img src="./assets/aistudio/Candy_Team_Game_Studio_Logo_c7b30204.webp" alt="CandyGame" />
+            <span>CandyGame</span>
+          </a>
+          <nav class="cg-admin-nav" aria-label="Admin navigation">
+            <a href="./admin.html">Dashboard</a>
+            <a href="./admin-games.html">Games</a>
+            <a href="./admin-game-editor.html" class="active">Add / Edit Game</a>
+            <a href="./admin-categories.html">Categories</a>
+            <a href="./admin-downloads.html">Downloads &amp; Links</a>
+            <a href="./admin-content.html">Website Content</a>
+            <a href="./admin-studio-contact.html">Studio &amp; Contact</a>
+            <a href="./admin-seo.html">SEO Settings</a>
+            <a href="./admin-settings.html">General Settings</a>
+          </nav>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem;">
+          <a href="./home.html" class="cg-btn cg-btn-secondary cg-btn-sm" style="width:100%;">View Public Site &rarr;</a>
+          <button type="button" data-cg-admin-signout class="cg-btn cg-btn-danger cg-btn-sm" style="width:100%;">Sign Out</button>
+        </div>
+      </aside>
+
+      <div class="cg-admin-content">
+        <header class="cg-admin-topbar">
+          <div style="display:flex;align-items:center;gap:0.75rem;">
+            <button type="button" class="cg-menu-btn" data-cg-admin-menu-toggle aria-label="Open menu">&#9776;</button>
+            <div>
+              <h1 style="font-size:1.35rem;color:#fff;">Add / Edit Game</h1>
+              <p style="font-size:0.8rem;color:var(--cg-on-surface-variant);">Configure game metadata, store links, assets, and SEO</p>
+            </div>
+          </div>
+          <a href="./admin-games.html" class="cg-btn cg-btn-secondary cg-btn-sm">&larr; Back to Games</a>
+        </header>
+
+        <main class="cg-admin-main">
+          <form class="cg-glass-card" data-cg-save-form="Game details" style="display:flex;flex-direction:column;gap:1.25rem;">
+            <h2 style="font-size:1.25rem;color:#fff;">Basic Information</h2>
+            <div class="cg-grid-2">
+              <div class="cg-field">
+                <label class="cg-label" for="g-name">Game Name</label>
+                <input id="g-name" class="cg-input" value="Brain Challenge" required />
+              </div>
+              <div class="cg-field">
+                <label class="cg-label" for="g-slug">Slug</label>
+                <input id="g-slug" class="cg-input" value="brain-challenge" required />
+              </div>
+              <div class="cg-field">
+                <label class="cg-label" for="g-cat">Category</label>
+                <select id="g-cat" class="cg-select">
+                  <option value="">None</option>
+                </select>
+              </div>
+              <div class="cg-field">
+                <label class="cg-label" for="g-status">Status</label>
+                <select id="g-status" class="cg-select">
+                  <option>Published</option>
+                  <option>Draft</option>
+                </select>
+              </div>
+            </div>
+            <div class="cg-field">
+              <label class="cg-label" for="g-short">Short Description</label>
+              <textarea id="g-short" rows="2" class="cg-textarea">Challenge your mind with creative puzzles, tricky brain teasers, and unexpected challenges! Test your logic, boost your creativity, think outside the box, and discover surprising solutions in a fun and addictive casual puzzle game. Play anytime, anywhere, even offline!</textarea>
+            </div>
+            <div class="cg-field">
+              <label class="cg-label" for="g-play">Google Play URL</label>
+              <input id="g-play" type="url" class="cg-input" placeholder="https://play.google.com/store/apps/details?id=..." />
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
+              <a href="./admin-games.html" class="cg-btn cg-btn-secondary">Cancel</a>
+              <button type="submit" class="cg-btn cg-btn-primary">Save Game</button>
+            </div>
+          </form>
+        </main>
+      </div>
+    </div>
+
+    <script src="./assets/main.js"></script>
+  </body>
+</html>
