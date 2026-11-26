@@ -14,6 +14,7 @@ import { Button } from '../../components/ui/Button';
 import { StatusBadge } from '../../components/ui/StatusBadge';
 import { useContent } from '../../hooks/useContent';
 import { ContactSubmission } from '../../types/content';
+import { API_BASE, apiUrl } from '../../utils/api';
 
 export const Dashboard: React.FC = () => {
   const { adminToken, authenticated, staticMode, setHeaderMeta } =
@@ -42,8 +43,8 @@ export const Dashboard: React.FC = () => {
     if (adminToken) {
       headers.Authorization = `Bearer ${adminToken}`;
     }
-    fetch('/api/inbox', {
-      credentials: 'same-origin',
+    fetch(apiUrl('/api/inbox'), {
+      credentials: API_BASE ? 'omit' : 'same-origin',
       headers,
     })
       .then((res) => (res.ok ? res.json() : null))

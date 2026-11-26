@@ -340,6 +340,34 @@ async function startServer(): Promise<void> {
   ensureStore();
   const app = express();
   app.set('trust proxy', 1);
+
+  const allowedOrigins = (process.env.ALLOWED_ORIGIN || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  if (allowedOrigins.length > 0) {
+    app.use('/api', (req: Request, res: Response, next: NextFunction) => {
+      const origin = req.headers.origin;
+      if (origin && allowedOrigins.includes(origin)) {
+        res.setHeader('Access-Control-Allow-Origin', origin);
+        res.setHeader('Vary', 'Origin');
+        res.setHeader(
+          'Access-Control-Allow-Methods',
+          'GET,POST,PUT,PATCH,DELETE,OPTIONS'
+        );
+        res.setHeader(
+          'Access-Control-Allow-Headers',
+          'Content-Type, Authorization, X-Requested-With, x-gmail-token, x-inbound-secret'
+        );
+      }
+      if (req.method === 'OPTIONS') {
+        res.status(204).end();
+        return;
+      }
+      next();
+    });
+  }
+
   app.use(express.json({ limit: '64kb' }));
 
   app.post('/api/admin/login', (req: Request, res: Response) => {

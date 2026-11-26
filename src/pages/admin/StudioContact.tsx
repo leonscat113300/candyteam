@@ -31,6 +31,7 @@ import {
   signInWithGmail,
 } from '../../services/gmailAuth';
 import { ContactInfo, ContactSubmission, StudioInfo } from '../../types/content';
+import { API_BASE, apiUrl } from '../../utils/api';
 
 type StudioTab = 'studio' | 'contact' | 'inbox';
 
@@ -98,8 +99,8 @@ export const StudioContact: React.FC = () => {
     }
     setLoadingInbox(true);
     try {
-      const response = await fetch('/api/inbox', {
-        credentials: 'same-origin',
+      const response = await fetch(apiUrl('/api/inbox'), {
+        credentials: API_BASE ? 'omit' : 'same-origin',
         headers: buildAuthHeaders(false),
       });
       if (!response.ok) return;
@@ -155,9 +156,9 @@ export const StudioContact: React.FC = () => {
 
         const headers = buildAuthHeaders(true);
         headers['x-gmail-token'] = accessToken;
-        const response = await fetch('/api/gmail/sync', {
+        const response = await fetch(apiUrl('/api/gmail/sync'), {
           method: 'POST',
-          credentials: 'same-origin',
+          credentials: API_BASE ? 'omit' : 'same-origin',
           headers,
         });
         const payload = (await response.json().catch(() => ({}))) as {
@@ -294,9 +295,9 @@ export const StudioContact: React.FC = () => {
       setToast('Message marked as reviewed.');
       return;
     }
-    const response = await fetch(`/api/inbox/${encodeURIComponent(id)}`, {
+    const response = await fetch(apiUrl(`/api/inbox/${encodeURIComponent(id)}`), {
       method: 'PATCH',
-      credentials: 'same-origin',
+      credentials: API_BASE ? 'omit' : 'same-origin',
       headers: buildAuthHeaders(true),
       body: JSON.stringify({ status: 'reviewed' }),
     });
@@ -315,9 +316,9 @@ export const StudioContact: React.FC = () => {
       setToast('Message deleted.');
       return;
     }
-    const response = await fetch(`/api/inbox/${encodeURIComponent(id)}`, {
+    const response = await fetch(apiUrl(`/api/inbox/${encodeURIComponent(id)}`), {
       method: 'DELETE',
-      credentials: 'same-origin',
+      credentials: API_BASE ? 'omit' : 'same-origin',
       headers: buildAuthHeaders(false),
     });
     if (response.ok) {
@@ -358,9 +359,9 @@ export const StudioContact: React.FC = () => {
     if (!testFrom.trim() || !testBody.trim()) return;
     setSendingTest(true);
     try {
-      const response = await fetch('/api/inbound-email', {
+      const response = await fetch(apiUrl('/api/inbound-email'), {
         method: 'POST',
-        credentials: 'same-origin',
+        credentials: API_BASE ? 'omit' : 'same-origin',
         headers: buildAuthHeaders(true),
         body: JSON.stringify({
           from: testFrom.trim(),

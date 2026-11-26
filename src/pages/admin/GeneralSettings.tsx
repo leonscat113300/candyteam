@@ -9,6 +9,7 @@ import { FormSelect } from '../../components/ui/FormSelect';
 import { Toast } from '../../components/ui/Toast';
 import { useContent } from '../../hooks/useContent';
 import { GeneralSettings as GeneralSettingsType } from '../../types/content';
+import { API_BASE, apiUrl } from '../../utils/api';
 
 export const GeneralSettings: React.FC = () => {
   const { adminToken, adminUsername, staticMode, updateAdminAuth, setHeaderMeta } =
@@ -71,9 +72,9 @@ export const GeneralSettings: React.FC = () => {
       if (adminToken) {
         headers.Authorization = `Bearer ${adminToken}`;
       }
-      const response = await fetch('/api/admin/credentials', {
+      const response = await fetch(apiUrl('/api/admin/credentials'), {
         method: 'PUT',
-        credentials: 'same-origin',
+        credentials: API_BASE ? 'omit' : 'same-origin',
         headers,
         body: JSON.stringify({
           currentPassword,
@@ -215,11 +216,11 @@ export const GeneralSettings: React.FC = () => {
           <div className="flex items-center gap-2.5">
             <KeyRound size={18} className="text-[#cebdff]" />
             <h2 className="font-display text-xl font-bold text-white">
-              Private Admin Access
+              Private Admin Credentials
             </h2>
           </div>
           <p className="text-sm text-[#cbc3d6]">
-            On static hosting (GitHub Pages), Admin Panel access is privately restricted to your authorized studio owner Google account. Username and password login is managed on the Node.js server.
+            On static hosting (GitHub Pages), username and password authentication uses your configured server API or Firebase Authentication Email/Password account.
           </p>
         </div>
       ) : (

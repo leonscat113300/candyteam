@@ -1,42 +1,42 @@
-import { getApp, getApps, initializeApp } from 'firebase/app';
+import { getApps, initializeApp } from 'firebase/app';
 import {
+  EmailAuthProvider,
   getAuth,
   GoogleAuthProvider,
   onAuthStateChanged,
+  signInWithEmailAndPassword,
   signInWithPopup,
   User,
 } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
 
 export const GMAIL_SCOPES = ['https://www.googleapis.com/auth/gmail.readonly'];
-export const OWNER_ADMIN_EMAIL = 'enrique113300@gmail.com';
 
-const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
-export const firebaseAuth = getAuth(app);
-const auth = firebaseAuth;
+const defaultApp = getApps().find((a) => a.name === '[DEFAULT]') || initializeApp(firebaseConfig);
+export const adminAuth = getAuth(defaultApp);
 
-const basicOwnerProvider = new GoogleAuthProvider();
-basicOwnerProvider.setCustomParameters({
-  prompt: 'select_account',
-});
+const gmailApp =
+  getApps().find((a) => a.name === 'gmail-sync') ||
+  initializeApp(firebaseConfig, 'gmail-sync');
+const gmailAuthInstance = getAuth(gmailApp);
 
-export function isAuthorizedOwner(user: User | null): boolean {
-  return Boolean(
-    user?.email &&
-      user.emailVerified &&
-      user.email.toLowerCase() === OWNER_ADMIN_EMAIL
+export function isPasswordAuthenticatedUser(user: User | null): boolean {
+  if (!user) return false;
+  return user.providerData.some(
+    (provider) => provider.providerId === EmailAuthProvider.PROVIDER_ID
   );
 }
 
-export async function signInOwnerWithGoogle(): Promise<User> {
-  const result = await signInWithPopup(auth, basicOwnerProvider);
-  if (!isAuthorizedOwner(result.user)) {
-    await auth.signOut();
-    throw new Error(
-      'Access denied. Only the authorized studio owner account can access the Admin Panel.'
-    );
-  }
+export async function signInAdminWithEmailPassword(
+  email: string,
+  password: string
+): Promise<User> {
+  const result = await signInWithEmailAndPassword(adminAuth, email, password);
   return result.user;
+}
+
+export async function signOutAdminAuth(): Promise<void> {
+  await adminAuth.signOut();
 }
 
 const provider = new GoogleAuthProvider();
@@ -54,7 +54,7 @@ export const initGmailAuth = (
   onAuthSuccess?: (user: User, token: string) => void,
   onAuthFailure?: (user: User | null) => void
 ) => {
-  return onAuthStateChanged(auth, (user: User | null) => {
+  return onAuthStateChanged(gmailAuthInstance, (user: User | null) => {
     if (user) {
       if (cachedAccessToken) {
         onAuthSuccess?.(user, cachedAccessToken);
@@ -75,7 +75,7 @@ export const signInWithGmail = async (): Promise<{
 }> => {
   try {
     isSigningIn = true;
-    const result = await signInWithPopup(auth, provider);
+    const result = await signInWithPopup(gmailAuthInstance, provider);
     const credential = GoogleAuthProvider.credentialFromResult(result);
     if (!credential?.accessToken) {
       throw new Error('Could not obtain Gmail access token from Google sign-in.');
@@ -98,7 +98,7 @@ export const clearGmailAccessToken = (): void => {
 
 export const disconnectGmail = async (): Promise<void> => {
   cachedAccessToken = null;
-  await auth.signOut();
+  await gmailAuthInstance.signOut();
 };
 
 interface GmailPart {

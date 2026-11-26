@@ -6,6 +6,7 @@ import { Button } from '../../components/ui/Button';
 import { FormInput } from '../../components/ui/FormInput';
 import { FormTextarea } from '../../components/ui/FormTextarea';
 import { useContent } from '../../hooks/useContent';
+import { apiUrl } from '../../utils/api';
 
 export const Contact: React.FC = () => {
   const { store, addContactSubmission } = useContent();
@@ -41,7 +42,7 @@ export const Contact: React.FC = () => {
     try {
       let deliveredToServer = false;
       try {
-        const response = await fetch('/api/contact', {
+        const response = await fetch(apiUrl('/api/contact'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

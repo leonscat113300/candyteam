@@ -9,11 +9,12 @@ import { Button } from '../../components/ui/Button';
 import { FormInput } from '../../components/ui/FormInput';
 import { useContent } from '../../hooks/useContent';
 import {
-  disconnectGmail,
-  firebaseAuth,
-  isAuthorizedOwner,
-  signInOwnerWithGoogle,
+  adminAuth,
+  isPasswordAuthenticatedUser,
+  signInAdminWithEmailPassword,
+  signOutAdminAuth,
 } from '../../services/gmailAuth';
+import { API_BASE, apiUrl } from '../../utils/api';
 
 export interface AdminOutletContext {
   adminToken: string;
@@ -54,17 +55,14 @@ export const AdminLayout: React.FC = () => {
     let active = true;
     let unsubscribeFirebase: (() => void) | null = null;
 
-    const subscribeStaticOwnerAuth = () => {
+    const subscribeStaticPasswordAuth = () => {
       setStaticMode(true);
-      unsubscribeFirebase = onAuthStateChanged(firebaseAuth, async (user) => {
+      unsubscribeFirebase = onAuthStateChanged(adminAuth, (user) => {
         if (!active) return;
-        if (isAuthorizedOwner(user)) {
+        if (isPasswordAuthenticatedUser(user)) {
           setAuthenticated(true);
-          setAdminUsername(user?.displayName || user?.email || 'Studio Owner');
+          setAdminUsername(user?.email || 'Admin');
         } else {
-          if (user) {
-            await firebaseAuth.signOut().catch(() => {});
-          }
           setAuthenticated(false);
           setAdminUsername('');
         }
@@ -72,14 +70,14 @@ export const AdminLayout: React.FC = () => {
       });
     };
 
-    fetch('/api/admin/session', {
-      credentials: 'same-origin',
+    fetch(apiUrl('/api/admin/session'), {
+      credentials: API_BASE ? 'omit' : 'same-origin',
     })
       .then(async (res) => {
         if (!active) return;
         const contentType = res.headers.get('content-type') || '';
         if (!contentType.includes('application/json')) {
-          subscribeStaticOwnerAuth();
+          subscribeStaticPasswordAuth();
           return;
         }
         setStaticMode(false);
@@ -97,7 +95,7 @@ export const AdminLayout: React.FC = () => {
       })
       .catch(() => {
         if (!active) return;
-        subscribeStaticOwnerAuth();
+        subscribeStaticPasswordAuth();
       });
 
     return () => {
@@ -114,31 +112,73 @@ export const AdminLayout: React.FC = () => {
     );
   }
 
-  const handleServerSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthError('');
-    setSigningIn(true);
+  const signInStaticWithPassword = async (
+    identifier: string,
+    secret: string
+  ) => {
+    if (!identifier.includes('@')) {
+      setAuthError(
+        'Static hosting (GitHub Pages) has no Node.js server to verify server-only usernames. Run the Node.js server to log in with that username, or enter your Firebase Auth email and password.'
+      );
+      return;
+    }
 
     try {
-      const response = await fetch('/api/admin/login', {
+      const user = await signInAdminWithEmailPassword(identifier, secret);
+      setAdminUsername(user.email || identifier);
+      setAuthenticated(true);
+      setPassword('');
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
+      if (code === 'auth/operation-not-allowed') {
+        setAuthError(
+          'Email/Password sign-in is not enabled in Firebase Authentication yet. Enable Email/Password in Firebase Console or deploy with the Node.js server.'
+        );
+      } else if (code === 'auth/unauthorized-domain') {
+        setAuthError(
+          `This domain (${window.location.hostname}) must be added to Firebase Authentication -> Settings -> Authorized domains.`
+        );
+      } else if (code === 'auth/too-many-requests') {
+        setAuthError('Too many failed attempts. Please wait a moment and try again.');
+      } else {
+        setAuthError('Invalid username or password. Please try again.');
+      }
+    }
+  };
+
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    const trimmedUser = username.trim();
+    if (!trimmedUser || !password) {
+      setAuthError('Please enter your username and password.');
+      return;
+    }
+
+    setSigningIn(true);
+    try {
+      if (staticMode) {
+        await signInStaticWithPassword(trimmedUser, password);
+        return;
+      }
+
+      const response = await fetch(apiUrl('/api/admin/login'), {
         method: 'POST',
-        credentials: 'same-origin',
+        credentials: API_BASE ? 'omit' : 'same-origin',
         headers: {
           'Content-Type': 'application/json',
           'X-Requested-With': 'CandyGameAdmin',
         },
         body: JSON.stringify({
-          username: username.trim(),
+          username: trimmedUser,
           password,
-          useCookie: true,
+          useCookie: !API_BASE,
         }),
       });
       const contentType = response.headers.get('content-type') || '';
       if (!contentType.includes('application/json')) {
         setStaticMode(true);
-        setAuthError(
-          'Static hosting detected. Please sign in with your authorized Google account below.'
-        );
+        await signInStaticWithPassword(trimmedUser, password);
         return;
       }
       const payload = (await response.json().catch(() => ({}))) as {
@@ -155,35 +195,14 @@ export const AdminLayout: React.FC = () => {
       }
 
       setAdminToken(payload.token);
-      setAdminUsername(payload.username || username.trim());
+      setAdminUsername(payload.username || trimmedUser);
       setAuthenticated(true);
       setPassword('');
     } catch {
-      setAuthError('Unable to reach authentication server. Please try again.');
-    } finally {
-      setSigningIn(false);
-    }
-  };
-
-  const handleStaticOwnerGoogleSignIn = async () => {
-    setAuthError('');
-    setSigningIn(true);
-    try {
-      const user = await signInOwnerWithGoogle();
-      setAdminUsername(user.displayName || user.email || 'Studio Owner');
-      setAuthenticated(true);
-    } catch (err) {
-      const code = (err as { code?: string })?.code;
-      if (code === 'auth/unauthorized-domain') {
-        setAuthError(
-          `This domain (${window.location.hostname}) must be added to Firebase Authentication -> Settings -> Authorized domains.`
-        );
+      if (staticMode) {
+        setAuthError('Unable to sign in right now. Please try again.');
       } else {
-        setAuthError(
-          err instanceof Error && err.message
-            ? err.message
-            : 'Google sign-in failed or was cancelled.'
-        );
+        setAuthError('Unable to reach authentication server. Please try again.');
       }
     } finally {
       setSigningIn(false);
@@ -192,12 +211,12 @@ export const AdminLayout: React.FC = () => {
 
   const handleSignOut = async () => {
     if (staticMode) {
-      await disconnectGmail().catch(() => {});
+      await signOutAdminAuth().catch(() => {});
     } else {
       try {
-        await fetch('/api/admin/logout', {
+        await fetch(apiUrl('/api/admin/logout'), {
           method: 'POST',
-          credentials: 'same-origin',
+          credentials: API_BASE ? 'omit' : 'same-origin',
           headers: {
             'X-Requested-With': 'CandyGameAdmin',
           },
@@ -235,122 +254,65 @@ export const AdminLayout: React.FC = () => {
               Admin Panel Sign In
             </h1>
             <p className="text-sm text-[#cbc3d6]">
-              {staticMode
-                ? 'Sign in with your private studio owner Google account to access the CandyGame Admin Panel.'
-                : 'Enter your private administrator username and password to access CandyGame management tools.'}
+              Enter your private administrator username and password to access CandyGame management tools.
             </p>
           </div>
 
-          {staticMode ? (
-            <div className="space-y-4">
-              <button
-                type="button"
-                onClick={() => void handleStaticOwnerGoogleSignIn()}
-                disabled={signingIn}
-                className="gsi-material-button w-full!"
-                style={{ width: '100%', maxWidth: '100%' }}
+          <form onSubmit={handleSignIn} className="space-y-4">
+            <FormInput
+              label={staticMode ? 'Username or Email' : 'Username'}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder={staticMode ? 'Enter email or username' : 'Enter username'}
+              autoComplete="username"
+              required
+            />
+
+            <div className="space-y-1.5">
+              <label
+                htmlFor="admin-password-input"
+                className="block text-sm font-medium text-[#e7defa]"
               >
-                <div className="gsi-material-button-state" />
-                <div className="gsi-material-button-content-wrapper">
-                  <div className="gsi-material-button-icon">
-                    <svg
-                      version="1.1"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 48 48"
-                      style={{ display: 'block' }}
-                    >
-                      <path
-                        fill="#EA4335"
-                        d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-                      />
-                      <path
-                        fill="#4285F4"
-                        d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-                      />
-                      <path
-                        fill="#FBBC05"
-                        d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-                      />
-                      <path
-                        fill="#34A853"
-                        d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-                      />
-                      <path fill="none" d="M0 0h48v48H0z" />
-                    </svg>
-                  </div>
-                  <span className="gsi-material-button-contents">
-                    {signingIn ? 'Verifying...' : 'Sign in with Google'}
-                  </span>
-                </div>
-              </button>
-
-              {authError ? (
-                <p className="text-sm text-[#ffb4ab] text-center" role="alert">
-                  {authError}
-                </p>
-              ) : null}
-
-              <p className="text-xs text-[#948e9f] text-center leading-relaxed">
-                Restricted to the authorized studio owner account. Username &amp; password authentication also runs when hosted on the Node.js server.
-              </p>
-            </div>
-          ) : (
-            <form onSubmit={handleServerSignIn} className="space-y-4">
-              <FormInput
-                label="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter username"
-                autoComplete="username"
-                required
-              />
-
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="admin-password-input"
-                  className="block text-sm font-medium text-[#e7defa]"
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="admin-password-input"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  autoComplete="current-password"
+                  required
+                  className="w-full rounded-2xl bg-[#151123] border border-[#BDA7FF]/20 pl-4 pr-11 py-2.5 text-sm text-[#e7defa] placeholder-[#948e9f] focus:outline-none focus:border-[#BDA7FF] transition-colors"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#948e9f] hover:text-white cursor-pointer"
                 >
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="admin-password-input"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter password"
-                    autoComplete="current-password"
-                    required
-                    className="w-full rounded-2xl bg-[#151123] border border-[#BDA7FF]/20 pl-4 pr-11 py-2.5 text-sm text-[#e7defa] placeholder-[#948e9f] focus:outline-none focus:border-[#BDA7FF] transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((prev) => !prev)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#948e9f] hover:text-white cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                  </button>
-                </div>
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
+            </div>
 
-              {authError ? (
-                <p className="text-sm text-[#ffb4ab]" role="alert">
-                  {authError}
-                </p>
-              ) : null}
+            {authError ? (
+              <p className="text-sm text-[#ffb4ab]" role="alert">
+                {authError}
+              </p>
+            ) : null}
 
-              <Button
-                type="submit"
-                variant="primary"
-                size="lg"
-                disabled={signingIn}
-                className="w-full"
-              >
-                {signingIn ? 'Signing In...' : 'Sign In to Admin Panel'}
-              </Button>
-            </form>
-          )}
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              disabled={signingIn}
+              className="w-full"
+            >
+              {signingIn ? 'Signing In...' : 'Sign In to Admin Panel'}
+            </Button>
+          </form>
 
           <div className="pt-2 border-t border-white/10 text-center">
             <Link
