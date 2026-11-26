@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://candygame.bond/</loc>
+    <loc>https://leonscat113300.github.io/candyteam/</loc>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://candygame.bond/#/games</loc>
+    <loc>https://leonscat113300.github.io/candyteam/#/games</loc>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://candygame.bond/#/games/brain-challenge</loc>
+    <loc>https://leonscat113300.github.io/candyteam/#/games/brain-challenge</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://candygame.bond/#/games/color-world</loc>
+    <loc>https://leonscat113300.github.io/candyteam/#/games/color-world</loc>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://candygame.bond/#/about</loc>
+    <loc>https://leonscat113300.github.io/candyteam/#/about</loc>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://candygame.bond/#/contact</loc>
+    <loc>https://leonscat113300.github.io/candyteam/#/contact</loc>
     <priority>0.7</priority>
   </url>
 </urlset>

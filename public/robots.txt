@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://candygame.bond/sitemap.xml
+Sitemap: https://leonscat113300.github.io/candyteam/sitemap.xml

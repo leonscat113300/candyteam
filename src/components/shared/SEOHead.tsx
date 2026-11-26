@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { SEOData } from '../../types/content';
 
-export const SITE_ORIGIN = 'https://candygame.bond';
+export const SITE_ORIGIN = 'https://leonscat113300.github.io/candyteam';
 
 export interface SEOHeadProps {
   seo?: Partial<SEOData>;
