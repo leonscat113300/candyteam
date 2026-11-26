@@ -61,7 +61,12 @@ export const AdminLayout: React.FC = () => {
         if (!active) return;
         if (isPasswordAuthenticatedUser(user)) {
           setAuthenticated(true);
-          setAdminUsername(user?.email || 'Admin');
+          const email = user?.email || 'Admin';
+          setAdminUsername(
+            email.endsWith('@candygame.app')
+              ? email.slice(0, -'@candygame.app'.length)
+              : email
+          );
         } else {
           setAuthenticated(false);
           setAdminUsername('');
@@ -116,27 +121,30 @@ export const AdminLayout: React.FC = () => {
     identifier: string,
     secret: string
   ) => {
-    if (!identifier.includes('@')) {
-      setAuthError(
-        'Static hosting (GitHub Pages) has no Node.js server to verify server-only usernames. Run the Node.js server to log in with that username, or enter your Firebase Auth email and password.'
-      );
-      return;
-    }
+    const cleanIdentifier = identifier.trim();
+    const resolvedEmail = cleanIdentifier.includes('@')
+      ? cleanIdentifier
+      : `${cleanIdentifier.toLowerCase()}@candygame.app`;
 
     try {
-      const user = await signInAdminWithEmailPassword(identifier, secret);
-      setAdminUsername(user.email || identifier);
+      const user = await signInAdminWithEmailPassword(resolvedEmail, secret);
+      const email = user.email || resolvedEmail;
+      setAdminUsername(
+        email.endsWith('@candygame.app')
+          ? email.slice(0, -'@candygame.app'.length)
+          : email
+      );
       setAuthenticated(true);
       setPassword('');
     } catch (err) {
       const code = (err as { code?: string })?.code;
       if (code === 'auth/operation-not-allowed') {
         setAuthError(
-          'Email/Password sign-in is not enabled in Firebase Authentication yet. Enable Email/Password in Firebase Console or deploy with the Node.js server.'
+          'Email/Password sign-in must be enabled in Firebase Console (Authentication -> Sign-in method -> Email/Password).'
         );
       } else if (code === 'auth/unauthorized-domain') {
         setAuthError(
-          `This domain (${window.location.hostname}) must be added to Firebase Authentication -> Settings -> Authorized domains.`
+          `Add ${window.location.hostname} to Firebase Console -> Authentication -> Settings -> Authorized domains.`
         );
       } else if (code === 'auth/too-many-requests') {
         setAuthError('Too many failed attempts. Please wait a moment and try again.');
