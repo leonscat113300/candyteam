@@ -11,7 +11,7 @@ import { useContent } from '../../hooks/useContent';
 import { GeneralSettings as GeneralSettingsType } from '../../types/content';
 
 export const GeneralSettings: React.FC = () => {
-  const { adminToken, adminUsername, updateAdminAuth, setHeaderMeta } =
+  const { adminToken, adminUsername, staticMode, updateAdminAuth, setHeaderMeta } =
     useOutletContext<AdminOutletContext>();
   const { store, updateSettings, resetToDefaults } = useContent();
 
@@ -210,58 +210,72 @@ export const GeneralSettings: React.FC = () => {
         </div>
       </form>
 
-      <form
-        onSubmit={handleUpdateCredentials}
-        className="candy-glass-card rounded-[2rem] p-6 sm:p-8 space-y-5"
-      >
-        <div className="flex items-center gap-2.5">
-          <KeyRound size={18} className="text-[#cebdff]" />
-          <h2 className="font-display text-xl font-bold text-white">
-            Admin Access Credentials
-          </h2>
+      {staticMode ? (
+        <div className="candy-glass-card rounded-[2rem] p-6 sm:p-8 space-y-2">
+          <div className="flex items-center gap-2.5">
+            <KeyRound size={18} className="text-[#cebdff]" />
+            <h2 className="font-display text-xl font-bold text-white">
+              Admin Access Mode
+            </h2>
+          </div>
+          <p className="text-sm text-[#cbc3d6]">
+            On static hosting (such as GitHub Pages), Admin access is open directly in your browser. Server-side username and password management is active when running the Node.js server.
+          </p>
         </div>
-        <p className="text-sm text-[#cbc3d6]">
-          Update your server-stored administrator username and password.
-        </p>
+      ) : (
+        <form
+          onSubmit={handleUpdateCredentials}
+          className="candy-glass-card rounded-[2rem] p-6 sm:p-8 space-y-5"
+        >
+          <div className="flex items-center gap-2.5">
+            <KeyRound size={18} className="text-[#cebdff]" />
+            <h2 className="font-display text-xl font-bold text-white">
+              Admin Access Credentials
+            </h2>
+          </div>
+          <p className="text-sm text-[#cbc3d6]">
+            Update your server-stored administrator username and password.
+          </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <FormInput
-            label="Current Password"
-            type="password"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            placeholder="Enter current password"
-            required
-          />
-          <FormInput
-            label="Admin Username"
-            value={newUsername}
-            onChange={(e) => setNewUsername(e.target.value)}
-            placeholder="Enter username"
-          />
-          <FormInput
-            label="New Password (optional)"
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Min 6 characters"
-          />
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <FormInput
+              label="Current Password"
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Enter current password"
+              required
+            />
+            <FormInput
+              label="Admin Username"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              placeholder="Enter username"
+            />
+            <FormInput
+              label="New Password (optional)"
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Min 6 characters"
+            />
+          </div>
 
-        {credError ? <p className="text-sm text-[#ffb4ab]">{credError}</p> : null}
+          {credError ? <p className="text-sm text-[#ffb4ab]">{credError}</p> : null}
 
-        <div className="flex justify-end pt-2">
-          <Button
-            type="submit"
-            variant="primary"
-            size="md"
-            disabled={savingCreds}
-            leftIcon={<Save size={15} />}
-          >
-            {savingCreds ? 'Updating...' : 'Update Credentials'}
-          </Button>
-        </div>
-      </form>
+          <div className="flex justify-end pt-2">
+            <Button
+              type="submit"
+              variant="primary"
+              size="md"
+              disabled={savingCreds}
+              leftIcon={<Save size={15} />}
+            >
+              {savingCreds ? 'Updating...' : 'Update Credentials'}
+            </Button>
+          </div>
+        </form>
+      )}
 
       <div className="candy-glass-card rounded-[2rem] p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">

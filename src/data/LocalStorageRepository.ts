@@ -450,6 +450,34 @@ export class LocalStorageRepository implements ContentRepository {
     );
     this.writeStore(store);
   }
+
+  async deleteContactSubmission(id: string): Promise<void> {
+    const store = this.readStore();
+    store.contactSubmissions = store.contactSubmissions.filter((m) => m.id !== id);
+    this.writeStore(store);
+  }
+
+  async mergeExternalSubmissions(
+    entries: ContactSubmission[]
+  ): Promise<ContactSubmission[]> {
+    const store = this.readStore();
+    const existingKeys = new Set(
+      store.contactSubmissions
+        .map((m) => m.externalId || m.id)
+        .filter(Boolean)
+    );
+    const fresh = entries.filter(
+      (entry) => !existingKeys.has(entry.externalId || entry.id)
+    );
+    if (fresh.length > 0) {
+      store.contactSubmissions = [...fresh, ...store.contactSubmissions].sort(
+        (a, b) =>
+          new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+      );
+      this.writeStore(store);
+    }
+    return store.contactSubmissions;
+  }
 }
 
 export const contentRepository: ContentRepository = new LocalStorageRepository();

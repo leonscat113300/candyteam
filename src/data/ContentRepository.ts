@@ -54,4 +54,8 @@ export interface ContentRepository {
     id: string,
     status: ContactSubmission['status']
   ): Promise<void>;
+  deleteContactSubmission(id: string): Promise<void>;
+  mergeExternalSubmissions(
+    entries: ContactSubmission[]
+  ): Promise<ContactSubmission[]>;
 }

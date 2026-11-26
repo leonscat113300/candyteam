@@ -16,7 +16,7 @@ import { useContent } from '../../hooks/useContent';
 import { ContactSubmission } from '../../types/content';
 
 export const Dashboard: React.FC = () => {
-  const { adminToken, authenticated, setHeaderMeta } =
+  const { adminToken, authenticated, staticMode, setHeaderMeta } =
     useOutletContext<AdminOutletContext>();
   const { store } = useContent();
   const [serverMessages, setServerMessages] = useState<ContactSubmission[]>([]);
@@ -36,7 +36,7 @@ export const Dashboard: React.FC = () => {
   }, [setHeaderMeta]);
 
   useEffect(() => {
-    if (!authenticated) return;
+    if (!authenticated || staticMode) return;
     let active = true;
     const headers: Record<string, string> = {};
     if (adminToken) {
@@ -58,15 +58,16 @@ export const Dashboard: React.FC = () => {
     return () => {
       active = false;
     };
-  }, [adminToken, authenticated]);
+  }, [adminToken, authenticated, staticMode]);
 
   if (!store) return null;
 
+  const activeMessages = staticMode ? store.contactSubmissions : serverMessages;
   const totalGames = store.games.length;
   const publishedGames = store.games.filter((g) => g.status === 'published').length;
   const activeCategories = store.categories.filter((c) => c.status === 'active').length;
   const configuredLinks = store.games.filter((g) => Boolean(g.googlePlayUrl)).length;
-  const newMessages = serverMessages.filter((m) => m.status === 'new').length;
+  const newMessages = activeMessages.filter((m) => m.status === 'new').length;
 
   const summaryCards = [
     {
@@ -92,7 +93,7 @@ export const Dashboard: React.FC = () => {
     },
     {
       label: 'Inbox Messages',
-      value: serverMessages.length,
+      value: activeMessages.length,
       meta: `${newMessages} unread`,
       icon: MessageSquare,
       to: '/admin/studio-contact?tab=inbox',

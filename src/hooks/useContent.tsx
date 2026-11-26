@@ -38,6 +38,10 @@ interface ContentContextValue {
     id: string,
     status: ContactSubmission['status']
   ) => Promise<void>;
+  deleteContactSubmission: (id: string) => Promise<void>;
+  mergeExternalSubmissions: (
+    entries: ContactSubmission[]
+  ) => Promise<ContactSubmission[]>;
 }
 
 const ContentContext = createContext<ContentContextValue | null>(null);
@@ -177,6 +181,23 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({
     [refresh]
   );
 
+  const deleteContactSubmission = useCallback(
+    async (id: string) => {
+      await contentRepository.deleteContactSubmission(id);
+      await refresh();
+    },
+    [refresh]
+  );
+
+  const mergeExternalSubmissions = useCallback(
+    async (entries: ContactSubmission[]) => {
+      const updated = await contentRepository.mergeExternalSubmissions(entries);
+      await refresh();
+      return updated;
+    },
+    [refresh]
+  );
+
   return (
     <ContentContext.Provider
       value={{
@@ -198,6 +219,8 @@ export const ContentProvider: React.FC<{ children: React.ReactNode }> = ({
         updateSettings,
         addContactSubmission,
         updateContactSubmissionStatus,
+        deleteContactSubmission,
+        mergeExternalSubmissions,
       }}
     >
       {children}

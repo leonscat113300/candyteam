@@ -12,6 +12,7 @@ export interface AdminOutletContext {
   adminToken: string;
   adminUsername: string;
   authenticated: boolean;
+  staticMode: boolean;
   updateAdminAuth: (next: { token: string; username: string }) => void;
   setHeaderMeta: (meta: {
     title: string;
@@ -33,6 +34,7 @@ export const AdminLayout: React.FC = () => {
   const [signingIn, setSigningIn] = useState(false);
   const [authError, setAuthError] = useState('');
   const [backendAvailable, setBackendAvailable] = useState(true);
+  const [staticMode, setStaticMode] = useState(false);
   const [headerMeta, setHeaderMeta] = useState<{
     title: string;
     subtitle?: string;
@@ -52,9 +54,13 @@ export const AdminLayout: React.FC = () => {
         const contentType = res.headers.get('content-type') || '';
         if (!contentType.includes('application/json')) {
           setBackendAvailable(false);
+          setStaticMode(true);
+          setAuthenticated(true);
+          setAdminUsername('Public Admin');
           return;
         }
         setBackendAvailable(true);
+        setStaticMode(false);
         if (res.ok) {
           const data = (await res.json().catch(() => ({}))) as {
             authenticated?: boolean;
@@ -67,7 +73,11 @@ export const AdminLayout: React.FC = () => {
         }
       })
       .catch(() => {
-        // Stay unauthenticated
+        if (!active) return;
+        setBackendAvailable(false);
+        setStaticMode(true);
+        setAuthenticated(true);
+        setAdminUsername('Public Admin');
       })
       .finally(() => {
         if (active) setCheckingSession(false);
@@ -263,7 +273,7 @@ export const AdminLayout: React.FC = () => {
       <AdminSidebar
         mobileOpen={mobileOpen}
         onClose={() => setMobileOpen(false)}
-        onSignOut={handleSignOut}
+        onSignOut={staticMode ? undefined : handleSignOut}
       />
       <div className="flex-1 min-w-0 flex flex-col">
         <AdminHeader
@@ -273,12 +283,21 @@ export const AdminLayout: React.FC = () => {
           onOpenSidebar={() => setMobileOpen(true)}
         />
         <main className="flex-1 p-5 sm:p-8 max-w-7xl w-full mx-auto">
+          {staticMode ? (
+            <div className="mb-6 rounded-2xl bg-[#1F1A35] border border-[#BDA7FF]/25 px-4 py-3 text-xs text-[#cbc3d6] flex flex-wrap items-center justify-between gap-2">
+              <span>
+                Static Hosting Mode (GitHub Pages): Admin panel access is open in your browser and edits save locally.
+              </span>
+              <span className="text-[#cebdff] font-medium">Public Browser Mode</span>
+            </div>
+          ) : null}
           <Outlet
             context={
               {
                 adminToken,
                 adminUsername,
                 authenticated,
+                staticMode,
                 updateAdminAuth: ({ token, username: nextUser }) => {
                   setAdminToken(token);
                   setAdminUsername(nextUser);

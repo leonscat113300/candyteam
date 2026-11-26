@@ -25,6 +25,7 @@ import { useContent } from '../../hooks/useContent';
 import {
   clearGmailAccessToken,
   disconnectGmail,
+  fetchGmailInboxDirect,
   getGmailAccessToken,
   initGmailAuth,
   signInWithGmail,
@@ -35,12 +36,15 @@ type StudioTab = 'studio' | 'contact' | 'inbox';
 
 export const StudioContact: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const { adminToken, authenticated, setHeaderMeta } =
+  const { adminToken, authenticated, staticMode, setHeaderMeta } =
     useOutletContext<AdminOutletContext>();
   const {
     store,
     updateStudioInfo,
     updateContactInfo,
+    updateContactSubmissionStatus,
+    deleteContactSubmission,
+    mergeExternalSubmissions,
   } = useContent();
 
   const initialTabParam = searchParams.get('tab');
@@ -85,6 +89,13 @@ export const StudioContact: React.FC = () => {
 
   const loadInbox = useCallback(async () => {
     if (!authenticated) return;
+    if (staticMode) {
+      setInboxMessages(store?.contactSubmissions || []);
+      if (store?.contact.email) {
+        setMailboxAddress(store.contact.email);
+      }
+      return;
+    }
     setLoadingInbox(true);
     try {
       const response = await fetch('/api/inbox', {
@@ -107,7 +118,7 @@ export const StudioContact: React.FC = () => {
     } finally {
       setLoadingInbox(false);
     }
-  }, [authenticated, buildAuthHeaders]);
+  }, [authenticated, buildAuthHeaders, staticMode, store?.contact.email, store?.contactSubmissions]);
 
   const syncGmailInbox = useCallback(
     async (explicitToken?: string, silent = false) => {
@@ -121,6 +132,27 @@ export const StudioContact: React.FC = () => {
       setSyncingGmail(true);
       if (!silent) setGmailError('');
       try {
+        if (staticMode) {
+          const current = store?.contactSubmissions || [];
+          const existingIds = new Set(
+            current
+              .map((m) => m.externalId || (m.id.startsWith('gmail-') ? m.id.slice(6) : ''))
+              .filter(Boolean)
+          );
+          const { entries } = await fetchGmailInboxDirect(accessToken, existingIds);
+          const updated = await mergeExternalSubmissions(entries);
+          setInboxMessages(updated);
+          setLastGmailSync(new Date().toLocaleTimeString());
+          if (!silent) {
+            setToast(
+              entries.length > 0
+                ? `Synced ${entries.length} new message${entries.length === 1 ? '' : 's'} from Gmail.`
+                : 'Gmail inbox is up to date.'
+            );
+          }
+          return;
+        }
+
         const headers = buildAuthHeaders(true);
         headers['x-gmail-token'] = accessToken;
         const response = await fetch('/api/gmail/sync', {
@@ -166,15 +198,30 @@ export const StudioContact: React.FC = () => {
               : 'Gmail inbox is up to date.'
           );
         }
-      } catch {
+      } catch (err) {
+        const status = (err as { status?: number })?.status;
+        if (status === 401) {
+          clearGmailAccessToken();
+          setNeedsGmailAuth(true);
+        }
         if (!silent) {
-          setGmailError('Network error while syncing Gmail inbox.');
+          setGmailError(
+            err instanceof Error && err.message
+              ? err.message
+              : 'Network error while syncing Gmail inbox.'
+          );
         }
       } finally {
         setSyncingGmail(false);
       }
     },
-    [authenticated, buildAuthHeaders]
+    [
+      authenticated,
+      buildAuthHeaders,
+      mergeExternalSubmissions,
+      staticMode,
+      store?.contactSubmissions,
+    ]
   );
 
   useEffect(() => {
@@ -239,6 +286,14 @@ export const StudioContact: React.FC = () => {
   };
 
   const handleMarkReviewed = async (id: string) => {
+    if (staticMode) {
+      await updateContactSubmissionStatus(id, 'reviewed');
+      setInboxMessages((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, status: 'reviewed' } : m))
+      );
+      setToast('Message marked as reviewed.');
+      return;
+    }
     const response = await fetch(`/api/inbox/${encodeURIComponent(id)}`, {
       method: 'PATCH',
       credentials: 'same-origin',
@@ -254,6 +309,12 @@ export const StudioContact: React.FC = () => {
   };
 
   const handleDeleteMessage = async (id: string) => {
+    if (staticMode) {
+      await deleteContactSubmission(id);
+      setInboxMessages((prev) => prev.filter((m) => m.id !== id));
+      setToast('Message deleted.');
+      return;
+    }
     const response = await fetch(`/api/inbox/${encodeURIComponent(id)}`, {
       method: 'DELETE',
       credentials: 'same-origin',
@@ -729,60 +790,68 @@ export const StudioContact: React.FC = () => {
               )}
             </div>
 
-            <div className="rounded-2xl bg-[#151123] border border-[#BDA7FF]/15 p-4 text-xs text-[#cbc3d6] space-y-2">
-              <p className="font-semibold text-white">
-                About Studio Contact Email & Webhook ({webhookConfigured ? 'Secret Configured' : 'Admin/Secret Protected'})
-              </p>
-              <p>
-                Messages sent via the website Contact page always arrive directly below. Because <span className="text-white">{mailboxAddress}</span> uses the external <code className="px-1 py-0.5 rounded bg-[#1F1A35] text-[#cebdff]">info.com</code> domain, external emails sent to <code className="px-1 py-0.5 rounded bg-[#1F1A35] text-[#cebdff]">{mailboxAddress}</code> cannot reach this server unless you own that domain. To receive external emails directly, connect your real Gmail inbox above (and optionally update your public Contact Email in the &ldquo;Contact &amp; Social&rdquo; tab to match it), or forward mail from a domain you own to{' '}
-                <code className="px-1.5 py-0.5 rounded bg-[#1F1A35] text-[#cebdff]">
-                  {typeof window !== 'undefined' ? `${window.location.origin}/api/inbound-email` : '/api/inbound-email'}
-                </code>{' '}
-                with header <code className="px-1.5 py-0.5 rounded bg-[#1F1A35] text-[#cebdff]">x-inbound-secret</code>.
-              </p>
-            </div>
-
-            <form
-              onSubmit={handleTestInboundEmail}
-              className="rounded-2xl bg-[#151123] border border-[#BDA7FF]/15 p-4 space-y-3"
-            >
-              <p className="text-xs font-semibold text-white">
-                Test Inbound Email Delivery (Admin Simulation)
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <FormInput
-                  placeholder="Sender email (e.g. player@gmail.com)"
-                  type="email"
-                  value={testFrom}
-                  onChange={(e) => setTestFrom(e.target.value)}
-                  required
-                />
-                <FormInput
-                  placeholder="Email subject"
-                  value={testSubject}
-                  onChange={(e) => setTestSubject(e.target.value)}
-                />
+            {staticMode ? (
+              <div className="rounded-2xl bg-[#151123] border border-[#BDA7FF]/15 p-4 text-xs text-[#cbc3d6]">
+                Static hosting mode: Connect your Gmail account above to sync external emails directly in the browser, and view messages submitted through the Contact form below.
               </div>
-              <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
-                <div className="flex-1">
-                  <FormInput
-                    placeholder="Message body..."
-                    value={testBody}
-                    onChange={(e) => setTestBody(e.target.value)}
-                    required
-                  />
+            ) : (
+              <>
+                <div className="rounded-2xl bg-[#151123] border border-[#BDA7FF]/15 p-4 text-xs text-[#cbc3d6] space-y-2">
+                  <p className="font-semibold text-white">
+                    About Studio Contact Email & Webhook ({webhookConfigured ? 'Secret Configured' : 'Admin/Secret Protected'})
+                  </p>
+                  <p>
+                    Messages sent via the website Contact page always arrive directly below. Because <span className="text-white">{mailboxAddress}</span> uses the external <code className="px-1 py-0.5 rounded bg-[#1F1A35] text-[#cebdff]">info.com</code> domain, external emails sent to <code className="px-1 py-0.5 rounded bg-[#1F1A35] text-[#cebdff]">{mailboxAddress}</code> cannot reach this server unless you own that domain. To receive external emails directly, connect your real Gmail inbox above (and optionally update your public Contact Email in the &ldquo;Contact &amp; Social&rdquo; tab to match it), or forward mail from a domain you own to{' '}
+                    <code className="px-1.5 py-0.5 rounded bg-[#1F1A35] text-[#cebdff]">
+                      {typeof window !== 'undefined' ? `${window.location.origin}/api/inbound-email` : '/api/inbound-email'}
+                    </code>{' '}
+                    with header <code className="px-1.5 py-0.5 rounded bg-[#1F1A35] text-[#cebdff]">x-inbound-secret</code>.
+                  </p>
                 </div>
-                <Button
-                  type="submit"
-                  variant="secondary"
-                  size="sm"
-                  disabled={sendingTest}
-                  leftIcon={<Send size={14} />}
+
+                <form
+                  onSubmit={handleTestInboundEmail}
+                  className="rounded-2xl bg-[#151123] border border-[#BDA7FF]/15 p-4 space-y-3"
                 >
-                  {sendingTest ? 'Delivering...' : 'Deliver Test Email'}
-                </Button>
-              </div>
-            </form>
+                  <p className="text-xs font-semibold text-white">
+                    Test Inbound Email Delivery (Admin Simulation)
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <FormInput
+                      placeholder="Sender email (e.g. player@gmail.com)"
+                      type="email"
+                      value={testFrom}
+                      onChange={(e) => setTestFrom(e.target.value)}
+                      required
+                    />
+                    <FormInput
+                      placeholder="Email subject"
+                      value={testSubject}
+                      onChange={(e) => setTestSubject(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
+                    <div className="flex-1">
+                      <FormInput
+                        placeholder="Message body..."
+                        value={testBody}
+                        onChange={(e) => setTestBody(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      variant="secondary"
+                      size="sm"
+                      disabled={sendingTest}
+                      leftIcon={<Send size={14} />}
+                    >
+                      {sendingTest ? 'Delivering...' : 'Deliver Test Email'}
+                    </Button>
+                  </div>
+                </form>
+              </>
+            )}
           </div>
 
           <div className="candy-glass-card rounded-[2rem] p-6 sm:p-8 space-y-4">
