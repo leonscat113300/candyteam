@@ -284,10 +284,19 @@ async function startServer(): Promise<void> {
   const app = express();
   app.set('trust proxy', 1);
 
-  const allowedOrigins = (process.env.ALLOWED_ORIGIN || '')
+  const defaultSiteOrigins = [
+    'http://candygame.bond',
+    'https://candygame.bond',
+    'http://www.candygame.bond',
+    'https://www.candygame.bond',
+  ];
+  const configuredOrigins = (process.env.ALLOWED_ORIGIN || '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
+  const allowedOrigins = Array.from(
+    new Set([...defaultSiteOrigins, ...configuredOrigins])
+  );
   if (allowedOrigins.length > 0) {
     app.use('/api', (req: Request, res: Response, next: NextFunction) => {
       const origin = req.headers.origin;

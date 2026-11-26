@@ -1,6 +1,8 @@
 import React, { useEffect } from 'react';
 import { SEOData } from '../../types/content';
 
+export const SITE_ORIGIN = 'https://candygame.bond';
+
 export interface SEOHeadProps {
   seo?: Partial<SEOData>;
   fallbackTitle?: string;
@@ -15,6 +17,10 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
   useEffect(() => {
     const title = seo?.title || fallbackTitle;
     const description = seo?.description || fallbackDescription;
+    const rawCanonical = (seo?.canonicalUrl || '/').trim();
+    const resolvedCanonical = /^https?:\/\//i.test(rawCanonical)
+      ? rawCanonical
+      : `${SITE_ORIGIN}${rawCanonical.startsWith('/') ? rawCanonical : `/${rawCanonical}`}`;
 
     document.title = title;
 
@@ -32,7 +38,17 @@ export const SEOHead: React.FC<SEOHeadProps> = ({
     if (ogDesc) {
       ogDesc.setAttribute('content', description);
     }
-  }, [seo?.title, seo?.description, fallbackTitle, fallbackDescription]);
+
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    if (ogUrl) {
+      ogUrl.setAttribute('content', resolvedCanonical);
+    }
+
+    const canonicalTag = document.querySelector('link[rel="canonical"]');
+    if (canonicalTag) {
+      canonicalTag.setAttribute('href', resolvedCanonical);
+    }
+  }, [seo?.title, seo?.description, seo?.canonicalUrl, fallbackTitle, fallbackDescription]);
 
   return null;
 };
