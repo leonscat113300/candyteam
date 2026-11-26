@@ -172,13 +172,23 @@ export class LocalStorageRepository implements ContentRepository {
           : defaults.pages;
 
       const normalizedPages = Object.fromEntries(
-        Object.entries(rawPages).map(([slug, page]) => [
-          slug,
-          {
-            ...page,
-            sections: normalizeSections(page.sections),
-          },
-        ])
+        Object.entries(rawPages).map(([slug, page]) => {
+          const defaultPage = defaults.pages[slug as PageSlug];
+          const heroImage = page.hero?.image
+            ? normalizeAssetUrl(page.hero.image)
+            : defaultPage?.hero?.image;
+          return [
+            slug,
+            {
+              ...page,
+              hero: {
+                ...page.hero,
+                ...(heroImage ? { image: heroImage } : {}),
+              },
+              sections: normalizeSections(page.sections),
+            },
+          ];
+        })
       ) as CandyGameDataStore['pages'];
 
       const migrateLegacyEmail = (val?: string) =>

@@ -107,4 +107,12 @@ export const STUDIO_ASSETS: Record<string, AssetEntry> = {
     kind: 'illustration',
     fallbackKey: 'generic-game',
   },
+  homeHeroStudio: {
+    id: 'home-hero-studio',
+    label: 'CandyGame Mobile Studio Workspace',
+    expectedFilename: 'hero_mobile_studio_1795718243643.jpg',
+    url: './src/assets/images/hero_mobile_studio_1795718243643.jpg',
+    kind: 'illustration',
+    fallbackKey: 'generic-game',
+  },
 };

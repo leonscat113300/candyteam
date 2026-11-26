@@ -27,41 +27,60 @@ export const Home: React.FC = () => {
 
       {/* Hero Section */}
       <section className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10 pt-14 pb-16 lg:pt-20 lg:pb-24">
-        <div className="max-w-4xl space-y-6">
-          {page.hero.subheading ? (
-            <p className="text-sm font-semibold text-[#BDA7FF] tracking-wide">
-              {page.hero.subheading}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
+          <div className="lg:col-span-7 space-y-6">
+            {page.hero.subheading ? (
+              <p className="text-sm font-semibold text-[#BDA7FF] tracking-wide">
+                {page.hero.subheading}
+              </p>
+            ) : null}
+
+            <h1 className="font-display text-4xl sm:text-5xl lg:text-[56px] xl:text-[64px] font-bold text-white leading-[1.1] tracking-[-0.03em] text-balance">
+              {page.hero.heading}
+            </h1>
+
+            <p className="text-base sm:text-lg text-[#cbc3d6] leading-relaxed max-w-2xl">
+              {page.hero.body}
             </p>
-          ) : null}
 
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-[64px] font-bold text-white leading-[1.1] tracking-[-0.03em] text-balance">
-            {page.hero.heading}
-          </h1>
+            <div className="flex flex-wrap items-center gap-4 pt-2">
+              {page.hero.primaryCtaLabel ? (
+                <Link to={page.hero.primaryCtaPath || '/games'}>
+                  <Button
+                    variant="primary"
+                    size="lg"
+                    rightIcon={<ArrowRight size={17} />}
+                  >
+                    {page.hero.primaryCtaLabel}
+                  </Button>
+                </Link>
+              ) : null}
 
-          <p className="text-base sm:text-lg text-[#cbc3d6] leading-relaxed max-w-2xl">
-            {page.hero.body}
-          </p>
+              {page.hero.secondaryCtaLabel ? (
+                <Link to={page.hero.secondaryCtaPath || '/about'}>
+                  <Button variant="secondary" size="lg">
+                    {page.hero.secondaryCtaLabel}
+                  </Button>
+                </Link>
+              ) : null}
+            </div>
+          </div>
 
-          <div className="flex flex-wrap items-center gap-4 pt-2">
-            {page.hero.primaryCtaLabel ? (
-              <Link to={page.hero.primaryCtaPath || '/games'}>
-                <Button
-                  variant="primary"
-                  size="lg"
-                  rightIcon={<ArrowRight size={17} />}
-                >
-                  {page.hero.primaryCtaLabel}
-                </Button>
-              </Link>
-            ) : null}
-
-            {page.hero.secondaryCtaLabel ? (
-              <Link to={page.hero.secondaryCtaPath || '/about'}>
-                <Button variant="secondary" size="lg">
-                  {page.hero.secondaryCtaLabel}
-                </Button>
-              </Link>
-            ) : null}
+          <div className="lg:col-span-5">
+            <div className="relative aspect-[4/3] w-full rounded-[2rem] overflow-hidden border border-[#BDA7FF]/20 bg-gradient-to-br from-[#272143] via-[#1f1a35] to-[#151123] shadow-[0_18px_45px_-10px_rgba(10,8,18,0.75)]">
+              <img
+                src={
+                  page.hero.image ||
+                  './src/assets/images/hero_mobile_studio_1795718243643.jpg'
+                }
+                alt="CandyGame mobile game development studio desk with puzzle and coloring prototypes"
+                referrerPolicy="no-referrer"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            </div>
           </div>
         </div>
       </section>

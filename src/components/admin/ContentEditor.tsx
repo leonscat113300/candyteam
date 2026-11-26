@@ -62,6 +62,17 @@ export const ContentEditor: React.FC<ContentEditorProps> = ({
           }
         />
 
+        <FormInput
+          label="Hero Image URL (Optional)"
+          value={page.hero.image || ''}
+          onChange={(e) =>
+            onChange({
+              ...page,
+              hero: { ...page.hero, image: e.target.value },
+            })
+          }
+        />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormInput
             label="Primary CTA Label"

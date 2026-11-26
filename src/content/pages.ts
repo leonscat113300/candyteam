@@ -12,6 +12,7 @@ export const INITIAL_PAGES: Record<PageSlug, PageContent> = {
       heading: 'Playful Mobile Worlds Crafted with Precision',
       subheading: 'Mobile Game Development Studio',
       body: 'CandyGame designs and develops expressive Android games that blend intuitive touch mechanics with imaginative visual worlds. Explore our signature releases.',
+      image: STUDIO_ASSETS.homeHeroStudio.url,
       primaryCtaLabel: 'Explore Games',
       primaryCtaPath: '/games',
       secondaryCtaLabel: 'About Studio',
